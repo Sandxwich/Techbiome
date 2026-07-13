@@ -1,0 +1,11 @@
+C4Context
+    title System Context diagram for Techbiome Website
+
+    Person(visitor, "Visitor", "A person using a web browser to access the site")
+    System_Boundary(techbiome_boundary, "Techbiome") {
+        System(website, "Techbiome Website", "Static website", "Provides landing page content and basic interaction")
+    }
+    System_Ext(github_pages, "GitHub Pages", "Static hosting platform")
+
+    Rel(visitor, website, "Views website", "HTTPS")
+    Rel(website, github_pages, "Hosted on", "Static files")
