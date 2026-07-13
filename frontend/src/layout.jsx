@@ -1,8 +1,11 @@
 import { Link, Outlet } from 'react-router-dom'
 import { Leaf } from 'lucide-react'
 import SolarGlobeWidget from './components/SolarGlobeWidget.jsx'
+import { useDeviceCount } from './hooks/useDeviceCount.js'
 
 export default function Layout() {
+    const { count, loading, error } = useDeviceCount()
+
   return (
     <div className="flex h-screen bg-background overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       {/* Sidebar */}
@@ -33,7 +36,10 @@ export default function Layout() {
             <header className="h-20 shrink-0 border-b border-border bg-background/80 px-4 py-2 backdrop-blur-sm sm:px-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <h1 className="font-['Bitter',serif] text-xl font-bold text-foreground">Welcome to TechBiome</h1>
-                    <SolarGlobeWidget size={56} />
+                    {/* Solar Globe Widget */}
+                    <div className="flex h-full items-center gap-3 rounded-xl border border-border bg-card">
+                        <SolarGlobeWidget size={50} count={count} loading={loading} error={error} />
+                    </div>
                 </div>
             </header>
             <main className="min-w-0 flex-1 p-6">

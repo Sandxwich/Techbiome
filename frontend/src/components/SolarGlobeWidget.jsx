@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import './SolarGlobeWidget.css'
 
 const SIZE = 200
@@ -41,9 +41,14 @@ function project(lon, lat, rot) {
   return { x: cx + x, y: cy - y, z }
 }
 
-export default function SolarGlobeWidget({ size = 96 }) {
+export default function SolarGlobeWidget({
+  size = 96,
+  count,
+  loading = false,
+  error = null,
+  label = 'devices on the grid',
+}) {
   const canvasRef = useRef(null)
-  const [count, setCount] = useState(1247)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -191,15 +196,11 @@ export default function SolarGlobeWidget({ size = 96 }) {
     }
   }, [])
 
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      if (Math.random() < 0.35) {
-        setCount((prev) => prev + 1)
-      }
-    }, 3000)
-
-    return () => clearInterval(intervalId)
-  }, [])
+  const displayCount = loading
+    ? '...'
+    : Number.isFinite(Number(count))
+      ? Number(count).toLocaleString()
+      : '--'
 
   return (
     <div
@@ -212,8 +213,8 @@ export default function SolarGlobeWidget({ size = 96 }) {
         <div className="solarpunk-ground-glow" />
       </div>
       <div className="solarpunk-tally">
-        <span className="solarpunk-count">{count.toLocaleString()}</span>
-        <span className="solarpunk-label">devices on the grid</span>
+        <span className="solarpunk-count">{displayCount}</span>
+        <span className="solarpunk-label">{error ? 'data unavailable' : label}</span>
       </div>
     </div>
   )
