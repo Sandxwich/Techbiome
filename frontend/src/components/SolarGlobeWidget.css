@@ -1,0 +1,63 @@
+.solarpunk-widget-wrap {
+  --moss: #3f6b4d;
+  --leaf: #6fa87a;
+  --gold: #e3ac4d;
+  --glow: #9fe6c9;
+  --cream: #f2ecdf;
+  --widget-size: 96px;
+
+  display: flex;
+  align-items: center;
+  gap: calc(var(--widget-size) * 0.23);
+  background: transparent;
+  padding: calc(var(--widget-size) * 0.125);
+  font-family: 'Outfit', 'Segoe UI', sans-serif;
+}
+
+.solarpunk-scene {
+  position: relative;
+  width: var(--widget-size);
+  height: var(--widget-size);
+  flex-shrink: 0;
+}
+
+canvas.solarpunk-globe {
+  width: var(--widget-size);
+  height: var(--widget-size);
+  display: block;
+}
+
+.solarpunk-ground-glow {
+  position: absolute;
+  bottom: calc(var(--widget-size) * -0.083);
+  left: 50%;
+  width: calc(var(--widget-size) * 0.69);
+  height: calc(var(--widget-size) * 0.125);
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgba(159, 230, 201, 0.3), transparent 70%);
+  filter: blur(3px);
+  pointer-events: none;
+}
+
+.solarpunk-tally {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.solarpunk-count {
+  font-size: calc(var(--widget-size) * 0.31);
+  font-weight: 600;
+  color: var(--cream);
+  letter-spacing: 0.3px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 14px rgba(159, 230, 201, 0.25);
+}
+
+.solarpunk-label {
+  margin-top: calc(var(--widget-size) * 0.04);
+  font-size: calc(var(--widget-size) * 0.13);
+  color: var(--leaf);
+  text-transform: lowercase;
+  letter-spacing: 0.3px;
+}
