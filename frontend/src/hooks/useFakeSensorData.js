@@ -4,7 +4,7 @@ export function useFakeSensorData() {
   const [history, setHistory] = useState([])
   const [current, setCurrent] = useState({ temp: 0, voltage: 0, rpm: 0 })
   const tick = useRef(0)
-  const lastPoint = useRef({ temp: 22, voltage: 12, rpm: 1050 })
+  const lastPoint = useRef({ temp: 22, voltage: 12, rpm: 10 })
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -13,7 +13,7 @@ export function useFakeSensorData() {
         time: tick.current,
         temp: 20 + Math.random() * 10 + Math.sin(tick.current / 5) * 3,
         voltage: 11.5 + Math.random() * 1.5,
-        rpm: 1000 + Math.random() * 200,
+        rpm: 10 + Math.random() * 20,
       }
       const smooth = 0.28
       const point = {
