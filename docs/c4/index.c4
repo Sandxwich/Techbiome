@@ -1,0 +1,615 @@
+specification {
+
+  element actor {
+    style {
+      shape person
+    }
+  }
+
+  element system
+
+  element service {
+    style {
+      color primary
+    }
+  }
+
+  element worker {
+    style {
+      color secondary
+    }
+  }
+
+  element component
+
+  element page {
+    style {
+      shape browser
+    }
+  }
+
+  element table {
+    style {
+      shape cylinder
+    }
+  }
+
+  element storage {
+    style {
+      shape storage
+    }
+  }
+
+  element broker
+
+  tag mvp
+  tag rest
+  tag http-get
+  tag http-post
+  tag http-put
+  tag http-delete
+
+}
+
+model {
+
+  // -- Actors -----------------------------------------------------------------
+
+  user = actor {
+    title 'User'
+    description 'Person who manages and monitors devices through the web UI.'
+  }
+
+  // -- Device -----------------------------------------------------------------
+
+  device = component {
+    title 'Device'
+    summary 'Generic IoT sensor/actuator device'
+    description '''
+    A connected hardware device that collects sensor data and responds
+    to commands from the platform.
+
+    Communicates over MQTTS for real-time telemetry and commands.
+    Uses HTTPS for OTA firmware downloads.
+    '''
+    style {
+      multiple true
+    }
+
+    mqtt-client = component {
+      title 'MQTT Client'
+      summary 'Handles all messaging with the platform broker'
+      description '''
+      Publishes sensor readings and device status.
+      Subscribes to its command topic.
+
+      Topics:
+      - `devices/{id}/telemetry` — publish sensor data
+      - `devices/{id}/status`    — publish connectivity state
+      - `devices/{id}/commands`  — subscribe for incoming commands
+      '''
+    }
+
+    http-client = component {
+      title 'HTTP Client'
+      summary 'Used exclusively for OTA firmware downloads'
+    }
+
+    mqtt-client -> techbiome.mqtt-broker {
+      title 'Publish telemetry & status'
+      technology 'MQTTS'
+    }
+
+    techbiome.mqtt-broker -> mqtt-client {
+      title 'Deliver commands'
+      technology 'MQTTS'
+    }
+
+    http-client -> techbiome.firmware-storage {
+      title 'Download firmware image'
+      technology 'HTTPS'
+    }
+  }
+
+  // -- Techbiome Platform -----------------------------------------------------
+
+  techbiome = system {
+    title 'Techbiome'
+    description '''
+    IoT device monitoring and management platform.
+
+    Ingests telemetry from devices, stores it, exposes a REST API
+    for the web UI, handles OTA firmware updates, evaluates alert
+    rules and maintains an audit log.
+    '''
+
+    // -- MQTT Broker --------------------------------------------------------
+
+    mqtt-broker = broker {
+      title 'MQTT Broker'
+      technology 'EMQX / Mosquitto'
+      description '''
+      Accepts MQTTS connections from devices and from the internal
+      MQTT bridge service. Retains command messages so devices that
+      reconnect after going offline still receive pending commands.
+      '''
+    }
+
+    // -- MQTT Bridge --------------------------------------------------------
+
+    mqtt-bridge = worker {
+      title 'MQTT Bridge'
+      technology 'Python / asyncio'
+      description '''
+      Subscribes to all device topics on the broker.
+
+      Responsibilities:
+      - Parse and validate incoming device payloads
+      - Write telemetry records to the database
+      - Update device last_seen and status
+      - Write raw device events to the log
+      - Forward pending commands from the command queue to the broker
+      '''
+
+      -> mqtt-broker {
+        title 'Subscribe to device topics'
+        technology 'MQTTS'
+      }
+
+      -> mqtt-broker {
+        title 'Publish commands to devices'
+        technology 'MQTTS'
+      }
+
+      -> database.telemetry {
+        title 'Persist sensor readings'
+      }
+
+      -> database.devices {
+        title 'Update device status & last_seen'
+      }
+
+      -> database.commands {
+        title 'Mark command as delivered'
+      }
+
+      -> database.logs {
+        title 'Write device event logs'
+      }
+    }
+
+    // -- Alert Worker -------------------------------------------------------
+
+    alert-worker = worker {
+      title 'Alert Worker'
+      technology 'Python / asyncio'
+      description '''
+      Continuously evaluates alert rules against incoming telemetry.
+
+      Responsibilities:
+      - Read active alert rules from the database
+      - Compare latest telemetry values against rule thresholds
+      - Create alert records when a rule is triggered
+      - Send notifications (e-mail, webhook) on state changes
+      - Resolve alerts automatically when the condition clears
+      '''
+
+      -> database.alerts {
+        title 'Read rules, write alert state'
+      }
+
+      -> database.telemetry {
+        title 'Read latest telemetry for evaluation'
+      }
+    }
+
+    // -- REST API -----------------------------------------------------------
+
+    api = service {
+      title 'REST API'
+      technology 'Python / Litestar'
+      description 'Single Litestar process exposing all platform capabilities over HTTPS.'
+
+      devices-api = component {
+        title 'Device Service'
+        description '''
+        Manages the device registry.
+
+        | Method | Path | Description |
+        |-|-|-|
+        | GET | /devices | List all devices |
+        | GET | /devices/{id} | Get device details |
+        | POST | /devices | Register a new device |
+        | PUT | /devices/{id} | Update device metadata |
+        | DELETE | /devices/{id} | Decommission a device |
+        '''
+        metadata {
+          url '/devices'
+        }
+
+        -> database.devices {
+          title 'CRUD device records'
+        }
+      }
+
+      telemetry-api = component {
+        title 'Telemetry Service'
+        description '''
+        Exposes stored sensor readings.
+
+        | Method | Path | Description |
+        |-|-|-|
+        | GET | /telemetry/{id} | Latest reading for a device |
+        | GET | /telemetry/{id}/history | Time-range query |
+        '''
+        metadata {
+          url '/telemetry'
+        }
+
+        -> database.telemetry {
+          title 'Query telemetry records'
+        }
+      }
+
+      commands-api = component {
+        title 'Command Service'
+        description '''
+        Queues and tracks commands sent to devices.
+        The MQTT bridge picks them up and forwards to the broker.
+
+        | Method | Path | Description |
+        |-|-|-|
+        | POST | /devices/{id}/commands | Queue a command |
+        | GET | /devices/{id}/commands | List command history |
+        '''
+        metadata {
+          url '/devices/{id}/commands'
+        }
+
+        -> database.commands {
+          title 'Queue and track commands'
+        }
+      }
+
+      firmware-api = component {
+        title 'Firmware Service'
+        description '''
+        Manages firmware binaries and triggers OTA update workflows.
+
+        | Method | Path | Description |
+        |-|-|-|
+        | GET | /firmware | List firmware images |
+        | POST | /firmware | Upload a new firmware image |
+        | POST | /firmware/{id}/deploy | Trigger OTA for selected devices |
+        '''
+        metadata {
+          url '/firmware'
+        }
+
+        -> database.firmware {
+          title 'CRUD firmware metadata'
+        }
+
+        -> firmware-storage {
+          title 'Store & retrieve binary images'
+        }
+
+        -> database.commands {
+          title 'Queue OTA command per target device'
+        }
+      }
+
+      alerts-api = component {
+        title 'Alert Service'
+        description '''
+        Manages alert rules and exposes current alert state.
+
+        | Method | Path | Description |
+        |-|-|-|
+        | GET | /alerts | List active alerts |
+        | GET | /alerts/rules | List alert rules |
+        | POST | /alerts/rules | Create an alert rule |
+        | PUT | /alerts/rules/{id} | Update an alert rule |
+        | DELETE | /alerts/rules/{id} | Delete an alert rule |
+        '''
+        metadata {
+          url '/alerts'
+        }
+
+        -> database.alerts {
+          title 'CRUD alert rules and alert state'
+        }
+      }
+
+      logs-api = component {
+        title 'Log Service'
+        description '''
+        Provides access to device and platform event logs.
+
+        | Method | Path | Description |
+        |-|-|-|
+        | GET | /logs | Query logs (filter by device, level, time) |
+        '''
+        metadata {
+          url '/logs'
+        }
+
+        -> database.logs {
+          title 'Query log records'
+        }
+      }
+    }
+
+    // -- Database -----------------------------------------------------------
+
+    database = component {
+      title 'Database'
+      technology 'PostgreSQL'
+      icon tech:postgresql
+
+      devices = table {
+        title 'devices'
+        description '''
+        | Column | Type | Constraints | Description |
+        |-|-|-|-|
+        | id | UUID | PK | Platform-generated identifier |
+        | serial | VARCHAR | Unique, NOT NULL | Hardware serial number |
+        | device_type | VARCHAR | NOT NULL | e.g. "sensor", "actuator" |
+        | firmware_version | VARCHAR | - | Last reported firmware version |
+        | last_seen | TIMESTAMPTZ | - | Timestamp of last received message |
+        | status | VARCHAR | NOT NULL | online / offline / provisioning |
+        | metadata | JSONB | - | Arbitrary device key-value pairs |
+        '''
+      }
+
+      telemetry = table {
+        title 'telemetry'
+        description '''
+        | Column | Type | Constraints | Description |
+        |-|-|-|-|
+        | id | BIGSERIAL | PK | - |
+        | device_id | UUID | FK ? devices | Source device |
+        | timestamp | TIMESTAMPTZ | NOT NULL | Device-reported timestamp |
+        | received_at | TIMESTAMPTZ | NOT NULL | Server ingestion timestamp |
+        | payload | JSONB | NOT NULL | Raw sensor readings |
+        '''
+      }
+
+      commands = table {
+        title 'commands'
+        description '''
+        | Column | Type | Constraints | Description |
+        |-|-|-|-|
+        | id | UUID | PK | - |
+        | device_id | UUID | FK ? devices | Target device |
+        | type | VARCHAR | NOT NULL | Command type identifier |
+        | payload | JSONB | - | Command parameters |
+        | status | VARCHAR | NOT NULL | queued / delivered / acked / failed |
+        | created_at | TIMESTAMPTZ | NOT NULL | - |
+        | delivered_at | TIMESTAMPTZ | - | Set by MQTT bridge on delivery |
+        '''
+      }
+
+      firmware = table {
+        title 'firmware'
+        description '''
+        | Column | Type | Constraints | Description |
+        |-|-|-|-|
+        | id | UUID | PK | - |
+        | version | VARCHAR | NOT NULL | Semantic version string |
+        | device_type | VARCHAR | NOT NULL | Compatible device type |
+        | storage_key | VARCHAR | NOT NULL | Object-storage reference |
+        | checksum | VARCHAR | NOT NULL | SHA-256 of the binary |
+        | uploaded_at | TIMESTAMPTZ | NOT NULL | - |
+        '''
+      }
+
+      alerts = table {
+        title 'alerts'
+        description '''
+        Stores both alert rules and triggered alert instances.
+
+        **Rules:**
+        | Column | Type | Description |
+        |-|-|-|
+        | id | UUID | PK |
+        | device_id | UUID | Target device (nullable = all devices) |
+        | metric | VARCHAR | Telemetry field to evaluate |
+        | operator | VARCHAR | gt / lt / eq / neq |
+        | threshold | NUMERIC | Trigger value |
+        | severity | VARCHAR | info / warning / critical |
+
+        **Alert instances:**
+        | Column | Type | Description |
+        |-|-|-|
+        | id | UUID | PK |
+        | rule_id | UUID | FK ? alert rule |
+        | device_id | UUID | FK ? devices |
+        | triggered_at | TIMESTAMPTZ | - |
+        | resolved_at | TIMESTAMPTZ | Null if still active |
+        | value | NUMERIC | Telemetry value that triggered the rule |
+        '''
+      }
+
+      logs = table {
+        title 'logs'
+        description '''
+        | Column | Type | Constraints | Description |
+        |-|-|-|-|
+        | id | BIGSERIAL | PK | - |
+        | device_id | UUID | FK ? devices | Nullable for platform events |
+        | level | VARCHAR | NOT NULL | debug / info / warning / error |
+        | source | VARCHAR | NOT NULL | device / api / alert-worker / mqtt-bridge |
+        | message | TEXT | NOT NULL | - |
+        | timestamp | TIMESTAMPTZ | NOT NULL | - |
+        '''
+      }
+    }
+
+    // -- Firmware Storage ---------------------------------------------------
+
+    firmware-storage = storage {
+      title 'Firmware Storage'
+      technology 'S3-compatible Object Storage'
+      description 'Stores firmware binary images referenced by the firmware table via storage_key.'
+    }
+
+    // -- Frontend -----------------------------------------------------------
+
+    frontend = component {
+      title 'Web UI'
+      technology 'React / Vite'
+      description 'Browser-based management console for the Techbiome platform.'
+      style {
+        shape browser
+      }
+
+      dashboard = page {
+        #mvp
+        title 'Dashboard'
+        summary 'Fleet-wide overview'
+        description '''
+        - Total devices / online / offline counts
+        - Active alert summary
+        - Recent log entries
+        '''
+      }
+
+      devices-page = page {
+        #mvp
+        title 'Devices'
+        summary 'Searchable, sortable table of all registered devices'
+
+        -> api.devices-api {
+          #rest #http-get
+          title 'GET /devices'
+          technology 'JSON/HTTPS'
+        }
+      }
+
+      device-detail-page = page {
+        #mvp
+        title 'Device Detail'
+        summary 'Telemetry charts, status, command panel and logs for one device'
+
+        -> api.devices-api {
+          #rest #http-get
+          title 'GET /devices/{id}'
+          technology 'JSON/HTTPS'
+        }
+
+        -> api.telemetry-api {
+          #rest #http-get
+          title 'GET /telemetry/{id}'
+          technology 'JSON/HTTPS'
+        }
+
+        -> api.commands-api {
+          #rest #http-post
+          title 'POST /devices/{id}/commands'
+          technology 'JSON/HTTPS'
+        }
+
+        -> api.logs-api {
+          #rest #http-get
+          title 'GET /logs?device_id={id}'
+          technology 'JSON/HTTPS'
+        }
+      }
+
+      firmware-page = page {
+        title 'Firmware'
+        summary 'Upload firmware images and trigger OTA updates'
+
+        -> api.firmware-api {
+          #rest #http-get
+          title 'GET /firmware'
+          technology 'JSON/HTTPS'
+        }
+
+        -> api.firmware-api {
+          #rest #http-post
+          title 'POST /firmware/{id}/deploy'
+          technology 'JSON/HTTPS'
+        }
+      }
+
+      alerts-page = page {
+        title 'Alerts'
+        summary 'View active alerts and manage alert rules'
+
+        -> api.alerts-api {
+          #rest #http-get
+          title 'GET /alerts'
+          technology 'JSON/HTTPS'
+        }
+
+        -> api.alerts-api {
+          #rest #http-post
+          title 'POST /alerts/rules'
+          technology 'JSON/HTTPS'
+        }
+      }
+
+      logs-page = page {
+        title 'Logs'
+        summary 'Searchable log viewer across all devices and sources'
+
+        -> api.logs-api {
+          #rest #http-get
+          title 'GET /logs'
+          technology 'JSON/HTTPS'
+        }
+      }
+    }
+  }
+
+  // -- Top-level relationships ------------------------------------------------
+
+  user -> techbiome.frontend {
+    title 'Manages devices via'
+    technology 'HTTPS'
+  }
+
+}
+
+views {
+
+  view index {
+    title 'Landscape'
+    description 'High-level overview of all actors and systems.'
+    include *
+  }
+
+  view of techbiome {
+    title 'Techbiome Platform'
+    description 'All components that make up the Techbiome platform.'
+    include *
+  }
+
+  view of techbiome.api {
+    title 'REST API'
+    description 'Internal service breakdown of the REST API.'
+    include *
+  }
+
+  view of techbiome.database {
+    title 'Database'
+    description 'Tables and their responsibilities.'
+    include *
+  }
+
+  view of techbiome.frontend {
+    title 'Frontend'
+    description 'Page structure of the web UI.'
+    include *
+    autoLayout LeftRight
+  }
+
+  view of device {
+    title 'Device'
+    description 'Internal components of a managed IoT device.'
+    include *
+  }
+
+}
