@@ -41,6 +41,54 @@ function project(lon, lat, rot) {
   return { x: cx + x, y: cy - y, z }
 }
 
+function buildVisibleSegments(poly, rot, zCutoff = -0.02) {
+  const points = poly.map(([lon, lat]) => ({
+    lon,
+    lat,
+    p: project(lon, lat, rot),
+  }))
+
+  const segments = []
+  let current = []
+
+  const projectEdgeCrossing = (a, b) => {
+    const denom = b.p.z - a.p.z
+    const t = denom === 0 ? 0 : (zCutoff - a.p.z) / denom
+    const clamped = Math.max(0, Math.min(1, t))
+    const lon = a.lon + (b.lon - a.lon) * clamped
+    const lat = a.lat + (b.lat - a.lat) * clamped
+    return project(lon, lat, rot)
+  }
+
+  for (let i = 0; i < points.length; i += 1) {
+    const a = points[i]
+    const b = points[(i + 1) % points.length]
+    const aVisible = a.p.z > zCutoff
+    const bVisible = b.p.z > zCutoff
+
+    if (aVisible && bVisible) {
+      if (current.length === 0) {
+        current.push(a.p)
+      }
+      current.push(b.p)
+    } else if (aVisible && !bVisible) {
+      current.push(projectEdgeCrossing(a, b))
+      if (current.length >= 3) {
+        segments.push(current)
+      }
+      current = []
+    } else if (!aVisible && bVisible) {
+      current = [projectEdgeCrossing(a, b), b.p]
+    }
+  }
+
+  if (current.length >= 3) {
+    segments.push(current)
+  }
+
+  return segments
+}
+
 export default function SolarGlobeWidget({
   size = 96,
   count,
@@ -108,23 +156,16 @@ export default function SolarGlobeWidget({
 
       ctx.fillStyle = '#6fa159'
       continents.forEach((poly) => {
-        let drawing = false
-        ctx.beginPath()
-        poly.forEach(([lon, lat]) => {
-          const p = project(lon, lat, rot)
-          if (p.z > -0.02) {
-            if (!drawing) {
-              ctx.moveTo(p.x, p.y)
-              drawing = true
-            } else {
-              ctx.lineTo(p.x, p.y)
-            }
-          } else {
-            drawing = false
+        const visibleSegments = buildVisibleSegments(poly, rot)
+        visibleSegments.forEach((segment) => {
+          ctx.beginPath()
+          ctx.moveTo(segment[0].x, segment[0].y)
+          for (let i = 1; i < segment.length; i += 1) {
+            ctx.lineTo(segment[i].x, segment[i].y)
           }
+          ctx.closePath()
+          ctx.fill()
         })
-        ctx.closePath()
-        ctx.fill()
       })
 
       const shadeGrad = ctx.createRadialGradient(
