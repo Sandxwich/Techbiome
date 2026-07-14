@@ -15,81 +15,87 @@
   --PEARL-AQUA: #82d1c5ff;
   /* end custom palettes */
 
+  --BACKGROUND-ELEVATED: color-mix(in srgb, var(--CALPOLYPOMONA-GREEN) 52%, black);
+  --CARD-SHEEN: color-mix(in srgb, var(--KHAKI) 5%, transparent);
+  --WARM-DEPTH: color-mix(in srgb, var(--AZTEC-GOLD) 8%, transparent);
+  --COOL-DEPTH: color-mix(in srgb, var(--PEARL-AQUA) 7%, transparent);
+  --SHADOW-DEPTH: rgba(1, 8, 5, 0.56);
+
   --font-size: 16px;
-  --background: #0f1a0e;
-  --foreground: #e8ead4;
-  --card: #162214;
-  --card-foreground: #e8ead4;
-  --popover: #1a2a18;
-  --popover-foreground: #e8ead4;
-  --primary: #8fc45a;
-  --primary-foreground: #0f1a0e;
-  --secondary: #1e2e1c;
-  --secondary-foreground: #b8c9a0;
-  --muted: #1a2318;
-  --muted-foreground: #7a8f6e;
-  --accent: #e8a020;
-  --accent-foreground: #0f1a0e;
+  --background: var(--CALPOLYPOMONA-GREEN);
+  --foreground: var(--KHAKI);
+  --card: var(--EBONY);
+  --card-foreground: var(--KHAKI);
+  --popover: var(--EBONY);
+  --popover-foreground: var(--KHAKI);
+  --primary: var(--MAY-GREEN);
+  --primary-foreground: var(--KHAKI);
+  --secondary: var(--EBONY);
+  --secondary-foreground: var(--TEA-GREEN);
+  --muted: var(--EBONY);
+  --muted-foreground: var(--YELLOW-GREEN);
+  --accent: var(--AZTEC-GOLD);
+  --accent-foreground: var(--CALPOLYPOMONA-GREEN);
   --destructive: #c0392b;
   --destructive-foreground: #f5ede0;
-  --border: rgba(143, 196, 90, 0.15);
+  --border: rgba(130, 209, 197, 0.18);
   --input: transparent;
-  --input-background: #1e2e1c;
-  --switch-background: #2a3d28;
+  --input-background: var(--EBONY);
+  --switch-background: var(--MAY-GREEN);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: rgba(143, 196, 90, 0.4);
-  --chart-1: #8fc45a;
-  --chart-2: #e8a020;
-  --chart-3: #4ab8a0;
-  --chart-4: #c8d96e;
-  --chart-5: #e05a30;
+  --ring: rgba(130, 209, 197, 0.4);
+  --chart-1: var(--MAY-GREEN);
+  --chart-2: var(--AZTEC-GOLD);
+  --chart-3: var(--PEARL-AQUA);
+  --chart-4: var(--TEA-GREEN);
+  --chart-5: var(--CHESTNUT);
   --radius: 0.5rem;
-  --sidebar: #0c1509;
-  --sidebar-foreground: #b8c9a0;
-  --sidebar-primary: #8fc45a;
-  --sidebar-primary-foreground: #0f1a0e;
-  --sidebar-accent: #1a2318;
-  --sidebar-accent-foreground: #e8ead4;
-  --sidebar-border: rgba(143, 196, 90, 0.1);
-  --sidebar-ring: rgba(143, 196, 90, 0.4);
+  --sidebar: var(--CHESTNUT);
+  --sidebar-foreground: var(--KHAKI);
+  --sidebar-primary: var(--AZTEC-GOLD);
+  --sidebar-primary-foreground: var(--CALPOLYPOMONA-GREEN);
+  --sidebar-accent: color-mix(in srgb, var(--CHESTNUT) 78%, black);
+  --sidebar-accent-foreground: var(--KHAKI);
+  --sidebar-border: rgba(130, 209, 197, 0.24);
+  --sidebar-ring: rgba(130, 209, 197, 0.42);
 }
 
 .dark {
-  --background: #0f1a0e;
-  --foreground: #e8ead4;
-  --card: #162214;
-  --card-foreground: #e8ead4;
-  --popover: #1a2a18;
-  --popover-foreground: #e8ead4;
-  --primary: #8fc45a;
-  --primary-foreground: #0f1a0e;
-  --secondary: #1e2e1c;
-  --secondary-foreground: #b8c9a0;
-  --muted: #1a2318;
-  --muted-foreground: #7a8f6e;
-  --accent: #e8a020;
-  --accent-foreground: #0f1a0e;
+  --background: var(--CALPOLYPOMONA-GREEN);
+  --foreground: var(--KHAKI);
+  --card: var(--EBONY);
+  --card-foreground: var(--KHAKI);
+  --popover: var(--EBONY);
+  --popover-foreground: var(--KHAKI);
+  --primary: var(--MAY-GREEN);
+  --primary-foreground: var(--KHAKI);
+  --secondary: var(--EBONY);
+  --secondary-foreground: var(--TEA-GREEN);
+  --muted: var(--EBONY);
+  --muted-foreground: var(--YELLOW-GREEN);
+  --accent: var(--AZTEC-GOLD);
+  --accent-foreground: var(--CALPOLYPOMONA-GREEN);
   --destructive: #c0392b;
   --destructive-foreground: #f5ede0;
-  --border: rgba(143, 196, 90, 0.15);
-  --input: rgba(143, 196, 90, 0.1);
-  --ring: rgba(143, 196, 90, 0.4);
+  --border: rgba(130, 209, 197, 0.18);
+  --input: rgba(130, 209, 197, 0.1);
+  --ring: rgba(130, 209, 197, 0.4);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: #8fc45a;
-  --chart-2: #e8a020;
-  --chart-3: #4ab8a0;
-  --chart-4: #c8d96e;
-  --chart-5: #e05a30;
-  --sidebar: #0c1509;
-  --sidebar-foreground: #b8c9a0;
-  --sidebar-primary: #8fc45a;
-  --sidebar-primary-foreground: #0f1a0e;
-  --sidebar-accent: #1a2318;
-  --sidebar-accent-foreground: #e8ead4;
-  --sidebar-border: rgba(143, 196, 90, 0.1);
-  --sidebar-ring: rgba(143, 196, 90, 0.4);
+  --chart-1: var(--MAY-GREEN);
+  --chart-2: var(--AZTEC-GOLD);
+  --chart-3: var(--PEARL-AQUA);
+  --chart-4: var(--TEA-GREEN);
+  --chart-5: var(--CHESTNUT);
+  --sidebar: var(--CHESTNUT);
+  --sidebar-foreground: var(--KHAKI);
+  --sidebar-primary: var(--AZTEC-GOLD);
+  --sidebar-primary-foreground: var(--CALPOLYPOMONA-GREEN);
+  --sidebar-accent: color-mix(in srgb, var(--CHESTNUT) 78%, black);
+  --sidebar-accent-foreground: var(--KHAKI);
+  --sidebar-border: rgba(130, 209, 197, 0.24);
+  --sidebar-ring: rgba(130, 209, 197, 0.42);
 }
 
 @theme inline {
@@ -141,6 +147,11 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'DM Sans', sans-serif;
+    background-image:
+      radial-gradient(circle at 18% 12%, var(--WARM-DEPTH), transparent 20%),
+      radial-gradient(circle at 82% 18%, var(--COOL-DEPTH), transparent 18%),
+      linear-gradient(180deg, color-mix(in srgb, var(--CALPOLYPOMONA-GREEN) 55%, black), color-mix(in srgb, var(--CALPOLYPOMONA-GREEN) 78%, black));
+    background-attachment: fixed;
   }
 
   html {
@@ -199,28 +210,65 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(143, 196, 90, 0.2);
+    background: rgba(130, 209, 197, 0.24);
     border-radius: 2px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(143, 196, 90, 0.4);
+    background: rgba(130, 209, 197, 0.42);
   }
 }
 
 
 
 @layer components {
+  .app-topbar {
+    background:
+      linear-gradient(180deg, var(--CARD-SHEEN), transparent 30%),
+      linear-gradient(90deg, color-mix(in srgb, var(--PEARL-AQUA) 5%, transparent), transparent 18%),
+      linear-gradient(180deg, color-mix(in srgb, var(--BACKGROUND-ELEVATED) 72%, black), var(--BACKGROUND-ELEVATED));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.24),
+      0 12px 30px var(--SHADOW-DEPTH);
+  }
+
+  .elevated-card {
+    background-image:
+      linear-gradient(180deg, var(--CARD-SHEEN), transparent 34%),
+      linear-gradient(135deg, color-mix(in srgb, var(--PEARL-AQUA) 4%, transparent), transparent 30%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+      0 10px 24px rgba(4, 14, 9, 0.28);
+  }
+
   .sidebar-nav-pattern {
     background-color: var(--CHESTNUT);
+    background-image:
+      linear-gradient(180deg, color-mix(in srgb, var(--KHAKI) 7%, transparent), transparent 18%),
+      linear-gradient(90deg, color-mix(in srgb, var(--PEARL-AQUA) 5%, transparent) 1px, transparent 1px),
+      linear-gradient(color-mix(in srgb, var(--AZTEC-GOLD) 7%, transparent) 1px, transparent 1px),
+      radial-gradient(circle at 84% 16%, color-mix(in srgb, var(--KHAKI) 10%, transparent), transparent 18%),
+      linear-gradient(145deg, color-mix(in srgb, var(--CHESTNUT) 52%, black), color-mix(in srgb, var(--CHESTNUT) 82%, black));
+    background-size: 100% 100%, 18px 18px, 18px 18px, 100% 100%, 100% 100%;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.24),
+      0 8px 20px rgba(18, 8, 4, 0.28);
   }
 
   .sidebar-nav-item {
     position: relative;
     border: 1px solid rgba(255, 255, 255, 0.14);
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 36%),
-      linear-gradient(145deg, rgb(208, 105, 36), rgb(146, 71, 24));
+      radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--KHAKI) 9%, transparent), transparent 22%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 30%),
+      linear-gradient(145deg, color-mix(in srgb, var(--AZTEC-GOLD) 68%, black), color-mix(in srgb, var(--CHESTNUT) 76%, black));
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.26);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+      0 6px 14px rgba(20, 8, 4, 0.28);
     transition:
       transform 140ms ease,
       box-shadow 160ms ease,

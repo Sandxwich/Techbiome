@@ -74,11 +74,11 @@ export default function Layout() {
         {/* Main content */}
         <div className="flex flex-1 flex-col overflow-hidden">
             {/* Top bar */}
-            <header className="h-20 rounded-r-lg shrink-0 border-b border-border topbar/80 px-4 py-2 backdrop-blur-sm sm:px-6">
+            <header className="app-topbar h-20 rounded-r-lg shrink-0 border-b border-border px-4 py-2 backdrop-blur-sm sm:px-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <h1 className="text-xl font-bold text-foreground">Welcome to TechBiome</h1>
                     {/* Solar Globe Widget */}
-                    <div className="flex h-full items-center gap-3 rounded-xl border border-border bg-card">
+                    <div className="elevated-card flex h-full items-center gap-3 rounded-xl border border-border bg-card">
                         <SolarGlobeWidget size={50} count={count} loading={loading} error={error} />
                     </div>
                 </div>

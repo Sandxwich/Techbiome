@@ -14,7 +14,7 @@ export default function Dashboard() {
                 <StatCard label="Voltage" value={current.voltage} unit="V" />
                 <StatCard label="RPM" value={current.rpm} unit="rpm" />
             </div>
-            <div className="h-80 w-full rounded-xl border border-border bg-card p-4">
+            <div className="elevated-card h-80 w-full rounded-xl border border-border bg-card p-4">
                 <ResponsiveContainer width="100%" height="100%">
                     <DataLine isAnimationActive={true} animationDuration={100} data={history} />
                 </ResponsiveContainer>
