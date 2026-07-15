@@ -216,6 +216,14 @@
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(130, 209, 197, 0.42);
   }
+
+  .warning {
+    @apply text-yellow-400;
+  }
+
+  .error {
+    @apply text-red-400;
+  }
 }
 
 
