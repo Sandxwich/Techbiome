@@ -1,0 +1,103 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: techbiome-postgres
+    environment:
+      POSTGRES_DB: techbiome
+      POSTGRES_USER: techbiome
+      POSTGRES_PASSWORD: techbiome
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U techbiome -d techbiome"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    container_name: techbiome-mqtt
+    ports:
+      - "1883:1883"
+      - "8883:8883"
+    volumes:
+      - ./backend/scripts/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqtt_data:/mosquitto/data
+      - mqtt_logs:/mosquitto/log
+
+  minio:
+    image: minio/minio:latest
+    container_name: techbiome-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: techbiome
+      MINIO_ROOT_PASSWORD: techbiome123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  backend-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: techbiome-api
+    environment:
+      DATABASE_URL: postgresql+psycopg://techbiome:techbiome@postgres:5432/techbiome
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      MQTT_BRIDGE_INTERVAL: 2
+      ALERT_WORKER_INTERVAL: 5
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  mqtt-bridge:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: techbiome-mqtt-bridge
+    environment:
+      DATABASE_URL: postgresql+psycopg://techbiome:techbiome@postgres:5432/techbiome
+      MQTT_BRIDGE_INTERVAL: 2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_started
+    command: python -m app.workers.mqtt_bridge
+
+  alert-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: techbiome-alert-worker
+    environment:
+      DATABASE_URL: postgresql+psycopg://techbiome:techbiome@postgres:5432/techbiome
+      ALERT_WORKER_INTERVAL: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: python -m app.workers.alert_worker
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: techbiome-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend-api
+
+volumes:
+  postgres_data:
+  mqtt_data:
+  mqtt_logs:
+  minio_data:

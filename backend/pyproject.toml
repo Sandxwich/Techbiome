@@ -1,0 +1,27 @@
+[project]
+name = "techbiome-backend"
+version = "0.1.0"
+description = "Techbiome backend based on the C4 model"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "litestar>=2.10.0",
+  "sqlalchemy>=2.0.32",
+  "pydantic-settings>=2.4.0",
+  "aiosqlite>=0.20.0",
+  "psycopg[binary]>=3.2.1",
+  "uvicorn>=0.30.6"
+]
+
+[project.optional-dependencies]
+workers = [
+  "aiomqtt>=2.2.0"
+]
+
+[tool.uv]
+dev-dependencies = [
+  "ruff>=0.6.2"
+]
+
+[tool.ruff]
+line-length = 100
