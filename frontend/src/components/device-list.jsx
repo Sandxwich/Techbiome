@@ -48,6 +48,7 @@ export default function DeviceSelector({
                     },
                 })
 
+                // Fall back to sample data when the backend is not available yet.
                 if (response.status === 404) {
                     if (mounted) {
                         setDevices(FAKE_DEVICES)
@@ -88,6 +89,7 @@ export default function DeviceSelector({
 
         fetchDevices()
 
+        // Avoid setting state after unmount if the fetch resolves late.
         return () => {
             mounted = false
         }
@@ -188,6 +190,7 @@ export function DeviceOverview({ endpoint = import.meta.env.VITE_DEVICES_URL || 
                     },
                 })
 
+                // Keep the overview usable with fixture data during local development.
                 if (response.status === 404) {
                     if (mounted) {
                         setDevices(FAKE_DEVICES)
@@ -222,6 +225,7 @@ export function DeviceOverview({ endpoint = import.meta.env.VITE_DEVICES_URL || 
 
         fetchDevices()
 
+        // Same guard as above: prevents stale async updates on navigation away.
         return () => {
             mounted = false
         }

@@ -10,6 +10,7 @@ import Settings from './pages/Settings.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    {/* BrowserRouter keeps the app shell mounted while the page content swaps by route. */}
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>

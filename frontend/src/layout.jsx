@@ -15,9 +15,9 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      {/* Sidebar */}
+            {/* App shell: fixed sidebar plus routed content area. */}
         <aside className="rounded-b-lg w-56 shrink-0 bg-sidebar border-r border-sidebar-border flex flex-col">
-            {/* Logo */}
+            {/* Brand block doubles as a visual anchor for the navigation. */}
             <div className="h-20 px-5 py-5 border-b border-sidebar-border">
             <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
@@ -30,7 +30,7 @@ export default function Layout() {
                 </div>
             </div>
 
-            {/* Navigation */}
+            {/* Route navigation keeps the selected page highlighted. */}
             <nav className="sidebar-nav-pattern flex flex-1 flex-col gap-1 px-3 py-4">
                 {navItems.map((item) => (
                     <NavLink
@@ -62,7 +62,7 @@ export default function Layout() {
                 ))}
             </nav>
 
-            {/* Status footer */}
+            {/* Small footer status line for quick at-a-glance connectivity context. */}
             <div className="px-4 py-4 border-t border-sidebar-border space-y-2">
                 <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Network</span>
@@ -71,13 +71,13 @@ export default function Layout() {
             </div>
         </aside>
 
-        {/* Main content */}
+        {/* The routed page content renders here. */}
         <div className="flex flex-1 flex-col overflow-hidden">
-            {/* Top bar */}
+            {/* Top bar combines page title and the live device count widget. */}
             <header className="app-topbar h-20 rounded-r-lg shrink-0 border-b border-border px-4 py-2 backdrop-blur-sm sm:px-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <h1 className="text-xl font-bold text-foreground">Welcome to TechBiome</h1>
-                    {/* Solar Globe Widget */}
+                    {/* This widget surfaces the current device count and loading state. */}
                     <div className="elevated-card flex h-full items-center gap-3 rounded-xl border border-border bg-card">
                         <SolarGlobeWidget size={50} count={count} loading={loading} error={error} />
                     </div>
