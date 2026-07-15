@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderApp } from './test/renderApp.jsx'
-import { SETTINGS_STORAGE_KEY } from './pages/Settings.jsx'
+import { SETTINGS_STORAGE_KEY, defaultSettings } from './hooks/useAppSettings.jsx'
 
 function jsonResponse(body, init = {}) {
   return {
@@ -58,6 +58,37 @@ function installDefaultFetchMock(overrides = {}) {
   )
 }
 
+const sampleLogs = [
+  {
+    id: 'dev-001-log-1',
+    timestamp: '2026-07-15T08:00:00.000Z',
+    level: 'info',
+    source: 'system.health',
+    message: 'Heartbeat received',
+  },
+  {
+    id: 'dev-001-log-2',
+    timestamp: '2026-07-15T08:01:00.000Z',
+    level: 'warning',
+    source: 'power.monitor',
+    message: 'Voltage fluctuation detected',
+  },
+  {
+    id: 'dev-001-log-3',
+    timestamp: '2026-07-15T08:02:00.000Z',
+    level: 'error',
+    source: 'sensor.bus',
+    message: 'Temporary sensor read timeout',
+  },
+  {
+    id: 'dev-001-log-4',
+    timestamp: '2026-07-15T08:03:00.000Z',
+    level: 'debug',
+    source: 'firmware.update',
+    message: 'Version check complete',
+  },
+]
+
 describe('route smoke tests', () => {
   beforeEach(() => {
     installDefaultFetchMock()
@@ -79,9 +110,11 @@ describe('settings persistence', () => {
     window.localStorage.setItem(
       SETTINGS_STORAGE_KEY,
       JSON.stringify({
-        apiBaseUrl: '/seeded-api',
-        autoRefresh: false,
-        refreshIntervalSeconds: 30,
+        themeMode: 'light',
+        chartRefreshIntervalSeconds: 2.5,
+        defaultLogView: 'warnings-and-errors',
+        timezone: 'utc',
+        timeFormat: '12h',
       }),
     )
 
@@ -89,34 +122,97 @@ describe('settings persistence', () => {
     const user = userEvent.setup()
     const firstRender = renderApp(['/settings'])
 
-    const apiBaseUrlInput = await screen.findByLabelText(/api base url/i)
-    const autoRefreshCheckbox = screen.getByLabelText(/enable automatic refresh/i)
-    const intervalInput = screen.getByLabelText(/refresh interval in seconds/i)
+    const themeModeInput = await screen.findByLabelText(/color theme/i)
+    const intervalInput = screen.getByLabelText(/chart refresh interval in seconds/i)
+    const defaultLogViewInput = screen.getByLabelText(/default log view/i)
+    const timezoneInput = screen.getByLabelText(/timezone/i)
+    const timeFormatInput = screen.getByLabelText(/time display format/i)
 
-    expect(apiBaseUrlInput).toHaveValue('/seeded-api')
-    expect(autoRefreshCheckbox).not.toBeChecked()
-    expect(intervalInput).toHaveValue(30)
+    expect(themeModeInput).toHaveValue('light')
+    expect(intervalInput).toHaveValue(2.5)
+    expect(defaultLogViewInput).toHaveValue('warnings-and-errors')
+    expect(timezoneInput).toHaveValue('utc')
+    expect(timeFormatInput).toHaveValue('12h')
 
-    await user.clear(apiBaseUrlInput)
-    await user.type(apiBaseUrlInput, '/updated-api')
-    await user.click(autoRefreshCheckbox)
+    await user.selectOptions(themeModeInput, 'dark')
     await user.clear(intervalInput)
-    await user.type(intervalInput, '45')
+    await user.type(intervalInput, '5')
+    await user.selectOptions(defaultLogViewInput, 'errors-only')
+    await user.selectOptions(timezoneInput, 'local')
+    await user.selectOptions(timeFormatInput, '24h')
     await user.click(screen.getByRole('button', { name: /save settings/i }))
 
     expect(await screen.findByText('Settings saved')).toBeInTheDocument()
     expect(JSON.parse(window.localStorage.getItem(SETTINGS_STORAGE_KEY))).toEqual({
-      apiBaseUrl: '/updated-api',
-      autoRefresh: true,
-      refreshIntervalSeconds: 45,
+      themeMode: 'dark',
+      chartRefreshIntervalSeconds: 5,
+      defaultLogView: 'errors-only',
+      timezone: 'local',
+      timeFormat: '24h',
     })
 
     firstRender.unmount()
     renderApp(['/settings'])
 
-    expect(await screen.findByLabelText(/api base url/i)).toHaveValue('/updated-api')
-    expect(screen.getByLabelText(/enable automatic refresh/i)).toBeChecked()
-    expect(screen.getByLabelText(/refresh interval in seconds/i)).toHaveValue(45)
+    expect(await screen.findByLabelText(/color theme/i)).toHaveValue('dark')
+    expect(screen.getByLabelText(/chart refresh interval in seconds/i)).toHaveValue(5)
+    expect(screen.getByLabelText(/default log view/i)).toHaveValue('errors-only')
+    expect(screen.getByLabelText(/timezone/i)).toHaveValue('local')
+    expect(screen.getByLabelText(/time display format/i)).toHaveValue('24h')
+  })
+
+  it('validates invalid values and can reset preferences to defaults', async () => {
+    installDefaultFetchMock()
+    const user = userEvent.setup()
+
+    renderApp(['/settings'])
+
+    const intervalInput = await screen.findByLabelText(/chart refresh interval in seconds/i)
+
+    await user.clear(intervalInput)
+    await user.type(intervalInput, '100')
+    await user.click(screen.getByRole('button', { name: /save settings/i }))
+
+    expect(await screen.findByText(/use a value between 0.5 and 60 seconds/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /reset to defaults/i }))
+
+    expect(await screen.findByText('Defaults restored')).toBeInTheDocument()
+    expect(JSON.parse(window.localStorage.getItem(SETTINGS_STORAGE_KEY))).toEqual(defaultSettings)
+    expect(screen.getByLabelText(/color theme/i)).toHaveValue(defaultSettings.themeMode)
+    expect(screen.getByLabelText(/chart refresh interval in seconds/i)).toHaveValue(defaultSettings.chartRefreshIntervalSeconds)
+  })
+})
+
+describe('settings consumers', () => {
+  it('applies stored preferences to dashboard and logs', async () => {
+    window.localStorage.setItem(
+      SETTINGS_STORAGE_KEY,
+      JSON.stringify({
+        themeMode: 'dark',
+        chartRefreshIntervalSeconds: 2,
+        defaultLogView: 'warnings-and-errors',
+        timezone: 'utc',
+        timeFormat: '24h',
+      }),
+    )
+
+    installDefaultFetchMock({
+      logs: jsonResponse(sampleLogs),
+    })
+
+    renderApp(['/'])
+
+    expect(await screen.findByText(/chart refreshes every 2 seconds/i)).toBeInTheDocument()
+
+    renderApp(['/logs'])
+
+    expect(await screen.findByLabelText(/log view/i)).toHaveValue('warnings-and-errors')
+    expect(await screen.findByText('Voltage fluctuation detected')).toBeInTheDocument()
+    expect(screen.getByText('Temporary sensor read timeout')).toBeInTheDocument()
+    expect(screen.queryByText('Heartbeat received')).not.toBeInTheDocument()
+    expect(screen.queryByText('Version check complete')).not.toBeInTheDocument()
+    expect(screen.getAllByText(/utc/i)).toHaveLength(2)
   })
 })
 
