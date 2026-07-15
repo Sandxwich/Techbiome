@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 
-export function useFakeSensorData() {
+export function useFakeSensorData(refreshIntervalMs = 500) {
   const [history, setHistory] = useState([])
   const [current, setCurrent] = useState({ temp: 0, voltage: 0, rpm: 0 })
   const tick = useRef(0)
@@ -25,10 +25,10 @@ export function useFakeSensorData() {
       lastPoint.current = point
       setCurrent(point)
       setHistory((prev) => [...prev.slice(-69), point]) // keep last 70 points
-    }, 500)
+    }, refreshIntervalMs)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [refreshIntervalMs])
 
   return { current, history }
 }

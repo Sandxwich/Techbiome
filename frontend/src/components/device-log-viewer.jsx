@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 const DEFAULT_LOGS_URL = '/logs'
 
@@ -49,10 +49,48 @@ function levelTone(level) {
   return 'text-emerald-200 border-emerald-300/40 bg-emerald-500/10'
 }
 
-export default function LogsViewer({ selectedDeviceId, logsEndpoint = import.meta.env.VITE_LOGS_URL || DEFAULT_LOGS_URL }) {
+function filterLogs(logs, logView) {
+  if (logView === 'errors-only') {
+    return logs.filter((entry) => entry.level === 'error')
+  }
+
+  if (logView === 'warnings-and-errors') {
+    return logs.filter((entry) => entry.level === 'warning' || entry.level === 'error')
+  }
+
+  return logs
+}
+
+function formatTimestamp(timestamp, timezone, timeFormat) {
+  if (!timestamp) {
+    return 'n/a'
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: timeFormat === '12h',
+    timeZone: timezone === 'utc' ? 'UTC' : undefined,
+    timeZoneName: 'short',
+  }).format(new Date(timestamp))
+}
+
+export default function LogsViewer({
+  selectedDeviceId,
+  logView = 'all',
+  timezone = 'local',
+  timeFormat = '24h',
+  logsEndpoint = import.meta.env.VITE_LOGS_URL || DEFAULT_LOGS_URL,
+}) {
   const [logs, setLogs] = useState([])
   const [logsLoading, setLogsLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  const visibleLogs = useMemo(() => filterLogs(logs, logView), [logs, logView])
 
   useEffect(() => {
     if (!selectedDeviceId) {
@@ -114,7 +152,7 @@ export default function LogsViewer({ selectedDeviceId, logsEndpoint = import.met
     <section className="elevated-card flex h-full min-h-0 flex-col rounded-xl border border-border p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold text-foreground">Device Logs</h2>
-          <span className="text-xs text-muted-foreground">{logs.length} entries</span>
+          <span className="text-xs text-muted-foreground">{visibleLogs.length} of {logs.length} entries</span>
         </div>
 
         {error ? <p className="mb-3 text-sm text-destructive">{error.message}</p> : null}
@@ -125,11 +163,11 @@ export default function LogsViewer({ selectedDeviceId, logsEndpoint = import.met
 
         {logsLoading ? <p className="text-sm text-muted-foreground">Loading logs...</p> : null}
 
-        {!logsLoading && selectedDeviceId && logs.length === 0 ? (
+        {!logsLoading && selectedDeviceId && visibleLogs.length === 0 ? (
           <p className="text-sm text-muted-foreground">No logs found for this device.</p>
         ) : null}
 
-        {!logsLoading && logs.length > 0 ? (
+        {!logsLoading && visibleLogs.length > 0 ? (
           <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border">
             <table className="w-full min-w-[680px] text-sm">
               <thead className="sticky top-0 bg-card">
@@ -141,10 +179,10 @@ export default function LogsViewer({ selectedDeviceId, logsEndpoint = import.met
                 </tr>
               </thead>
               <tbody>
-                {logs.map((entry) => (
+                {visibleLogs.map((entry) => (
                   <tr key={entry.id} className="border-t border-border align-top">
                     <td className="whitespace-nowrap px-3 py-2 text-foreground/90">
-                      {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : 'n/a'}
+                      {formatTimestamp(entry.timestamp, timezone, timeFormat)}
                     </td>
                     <td className="px-3 py-2">
                       <span
