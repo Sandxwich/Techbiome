@@ -1,16 +1,43 @@
-# React + Vite
+# Techbiome Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+This package contains the React/Vite UI for Techbiome.
 
-Currently, two official plugins are available:
+## What lives here
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `src/main.jsx` wires the router and layout.
+- `src/layout.jsx` contains the app shell, sidebar navigation, and top bar.
+- `src/pages/Dashboard.jsx` shows the main operational dashboard.
+- `src/pages/Devices.jsx` renders the device overview.
+- `src/pages/Logs.jsx` combines alert cards, backend status, device selection, and logs.
+- `src/pages/Settings.jsx` is the configuration entry point.
 
-## React Compiler
+## Key UI Concepts
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- The dashboard currently uses generated sensor data to demonstrate the charting and stat card layout.
+- The devices, logs, and backend status components are wired to the backend-backed views.
+- The app uses Tailwind classes plus a small set of custom theme styles in `src/styles`.
 
-## Expanding the Oxlint configuration
+## Development
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Install dependencies and run the Vite dev server:
+
+```powershell
+npm install
+npm run dev
+```
+
+Build for production:
+
+```powershell
+npm run build
+```
+
+Lint the frontend:
+
+```powershell
+npm run lint
+```
+
+## Notes
+
+If you are trying to understand the UI structure, start with [src/layout.jsx](src/layout.jsx) and then move into the page files under `src/pages` and the shared components under `src/components`.

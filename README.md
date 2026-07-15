@@ -1,83 +1,54 @@
-# Techbiome Website Starter
+# Techbiome
 
-A clean, responsive starter website using plain HTML, CSS, and JavaScript.
+Techbiome is an IoT monitoring and device-management platform. It combines a Litestar backend, a React/Vite frontend, a PostgreSQL database, an MQTT broker, and background workers that move telemetry, commands, and alert state through the system.
 
-## Files
+## What it does
 
-- `index.html`: Main page and semantic structure
-- `styles.css`: Theme, layout, responsive rules, and animations
-- `script.js`: Basic interactive behavior
-- `favicon.svg`: Site icon
-- `.gitignore`: Standard ignore rules
-- `docs/c4/context.mmd`: C4 System Context source
-- `docs/c4/container.mmd`: C4 Container source
-- `docs/c4/component.mmd`: C4 Component source
+- Tracks devices in a registry and stores their status.
+- Ingests telemetry and keeps the latest readings plus history.
+- Queues device commands and marks them delivered through the MQTT bridge.
+- Maintains firmware metadata and queues OTA deploy commands.
+- Evaluates alert rules against telemetry and records alert instances.
+- Exposes a browser UI for operational monitoring.
 
-## Run Locally
+## Repo Layout
 
-Open `index.html` directly in your browser.
+- [backend/README.md](backend/README.md) explains the API, workers, and data model.
+- [frontend/README.md](frontend/README.md) explains the UI routes and frontend structure.
+- [docs/architecture.md](docs/architecture.md) gives the system-wide flow.
+- [docs/data-model.md](docs/data-model.md) summarizes the main database tables.
+- [docs/c4/index.c4](docs/c4/index.c4) contains the architecture model used for C4 diagrams.
 
-## Customize
+## Local Development
 
-1. Replace text content in `index.html`.
-2. Adjust theme colors and typography in `styles.css`.
-3. Add features in `script.js`.
+Use Docker Compose for the full stack:
 
-## C4 Architecture Model
-
-These Mermaid C4 diagrams render in Markdown viewers that support Mermaid C4 syntax, including GitHub.
-
-### 1. System Context
-
-```mermaid
-C4Context
-	title System Context diagram for Techbiome Website
-
-	Person(visitor, "Visitor", "A person using a web browser to access the site")
-	System_Boundary(techbiome_boundary, "Techbiome") {
-		System(website, "Techbiome Website", "Static website", "Provides landing page content and basic interaction")
-	}
-	System_Ext(github_pages, "GitHub Pages", "Static hosting platform")
-
-	Rel(visitor, website, "Views website", "HTTPS")
-	Rel(website, github_pages, "Hosted on", "Static files")
+```powershell
+docker compose up --build
 ```
 
-### 2. Container
+Then open:
+
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- MinIO API: http://localhost:9000
+- MinIO Console: http://localhost:9001
+
+If you only want one subsystem, see the backend and frontend READMEs for direct run instructions.
+
+## High-Level Architecture
 
 ```mermaid
-C4Container
-	title Container diagram for Techbiome Website
-
-	Person(visitor, "Visitor", "Website user")
-	System_Boundary(techbiome_boundary, "Techbiome Website") {
-		Container(browser, "Browser", "User's web browser", "Renders UI and runs JavaScript")
-		Container(web_assets, "Static Web Assets", "HTML/CSS/JavaScript", "Delivers content, style, and interaction")
-	}
-	System_Ext(hosting, "Static Hosting", "GitHub Pages, Netlify, or similar")
-
-	Rel(visitor, browser, "Uses")
-	Rel(browser, web_assets, "Requests and loads", "HTTPS")
-	Rel(web_assets, hosting, "Served by")
+flowchart LR
+  user[User] --> ui[React frontend]
+  ui --> api[Litestar REST API]
+  devices[Devices] -->|MQTT telemetry and status| broker[MQTT broker]
+  broker --> bridge[MQTT bridge worker]
+  bridge --> db[(PostgreSQL)]
+  api --> db
+  api --> workers[Alert worker]
+  workers --> db
+  api --> storage[MinIO]
 ```
 
-### 3. Component
-
-```mermaid
-C4Component
-	title Component diagram for Techbiome Website static assets
-
-	Container_Boundary(web_assets, "Static Web Assets") {
-		Component(index_html, "index.html", "HTML", "Semantic page structure and content")
-		Component(styles_css, "styles.css", "CSS", "Theme, responsive layout, and animation")
-		Component(script_js, "script.js", "JavaScript", "Handles UI interaction and status updates")
-		Component(favicon_svg, "favicon.svg", "SVG", "Brand icon shown by browser")
-	}
-
-	Rel(index_html, styles_css, "Loads")
-	Rel(index_html, script_js, "Loads")
-	Rel(index_html, favicon_svg, "References")
-	Rel(script_js, index_html, "Updates DOM content")
-```
-
-Source files for these diagrams are in `docs/c4/`.
+The detailed C4 source lives in [docs/c4/index.c4](docs/c4/index.c4).
