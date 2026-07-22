@@ -3,6 +3,7 @@ import { useFakeSensorData } from '../hooks/useFakeSensorData.js'
 import { useAppSettings } from '../hooks/useAppSettings.jsx'
 import StatCard from '../components/StatCard'
 import DataLine from '../components/linechart.jsx'
+import BrightnessWidget from '../components/brightness.jsx'
 
 export default function Dashboard() {
     const { settings } = useAppSettings()
@@ -19,10 +20,15 @@ export default function Dashboard() {
                 <StatCard label="RPM" value={current.rpm} unit="rpm" />
             </div>
             {/* The line chart shows the recent synthetic sensor history for layout and motion testing. */}
-            <div className="elevated-card h-80 w-full rounded-xl border border-border bg-card p-4">
-                <ResponsiveContainer width="100%" height="100%">
-                    <DataLine isAnimationActive={true} animationDuration={100} data={history} />
-                </ResponsiveContainer>
+            <div className="grid grid-cols-5 gap-4">
+                <div className="elevated-card w-full h-80 rounded-xl border border-border bg-card p-4 col-span-3 row-span-1">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <DataLine isAnimationActive={true} animationDuration={100} data={history} />
+                    </ResponsiveContainer>
+                </div>
+                <div className="elevated-card w-full h-80 rounded-xl border border-border bg-card p-4 col-span-2 row-span-1">
+                    <BrightnessWidget />
+                </div>
             </div>
         </div>
     )

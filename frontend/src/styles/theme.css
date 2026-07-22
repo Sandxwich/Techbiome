@@ -234,6 +234,9 @@
 
 
 @layer components {
+  .icons {
+    color: var(--primary);
+  }
   .app-topbar {
     background:
       linear-gradient(180deg, var(--CARD-SHEEN), transparent 30%),

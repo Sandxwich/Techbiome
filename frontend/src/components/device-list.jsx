@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-const DEFAULT_DEVICES_URL = '/devices'
+const DEFAULT_DEVICES_URL = '/api/devices'
 
 const FAKE_DEVICES = [
     {
