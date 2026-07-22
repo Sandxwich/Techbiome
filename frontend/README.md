@@ -60,4 +60,13 @@ npm run test:watch
 
 ## Notes
 
+Brightness widget configuration (optional):
+
+- `VITE_USE_FAKE_BRIGHTNESS=true` enables simulated brightness instead of API data.
+- `VITE_FAKE_BRIGHTNESS_STEP=120` controls how much brightness increases each tick.
+- `VITE_FAKE_BRIGHTNESS_TICK_MS=1000` controls tick speed in milliseconds.
+- `VITE_FAKE_BRIGHTNESS_START=4000` sets the initial fake brightness.
+- `VITE_BRIGHTNESS_REFRESH_MS=3000` controls live API polling interval.
+- When `VITE_USE_FAKE_BRIGHTNESS` is not enabled, the widget now automatically falls back to simulated brightness if the API is unreachable, and switches back to live data when the backend recovers.
+
 If you are trying to understand the UI structure, start with [src/layout.jsx](src/layout.jsx) and then move into the page files under `src/pages` and the shared components under `src/components`.
