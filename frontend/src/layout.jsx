@@ -72,7 +72,7 @@ export default function Layout() {
         </aside>
 
         {/* The routed page content renders here. */}
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {/* Top bar combines page title and the live device count widget. */}
             <header className="app-topbar h-20 rounded-r-lg shrink-0 border-b border-border px-4 py-2 backdrop-blur-sm sm:px-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -83,7 +83,7 @@ export default function Layout() {
                     </div>
                 </div>
             </header>
-            <main className="min-w-0 flex-1 p-6">
+            <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-6">
                 <Outlet />
             </main>
         </div>

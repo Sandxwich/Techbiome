@@ -15,53 +15,58 @@
   --PEARL-AQUA: #82d1c5ff;
   /* end custom palettes */
 
-  --BACKGROUND-ELEVATED: color-mix(in srgb, var(--CALPOLYPOMONA-GREEN) 52%, black);
-  --CARD-SHEEN: color-mix(in srgb, var(--KHAKI) 5%, transparent);
-  --WARM-DEPTH: color-mix(in srgb, var(--AZTEC-GOLD) 8%, transparent);
-  --COOL-DEPTH: color-mix(in srgb, var(--PEARL-AQUA) 7%, transparent);
-  --SHADOW-DEPTH: rgba(1, 8, 5, 0.56);
+  --BACKGROUND-ELEVATED: color-mix(in srgb, var(--TEA-GREEN) 55%, white);
+  --CARD-SHEEN: color-mix(in srgb, white 22%, transparent);
+  --WARM-DEPTH: color-mix(in srgb, var(--AZTEC-GOLD) 14%, transparent);
+  --COOL-DEPTH: color-mix(in srgb, var(--CELESTIAL_BLUE) 12%, transparent);
+  --SHADOW-DEPTH: rgba(39, 57, 34, 0.14);
 
   --font-size: 16px;
-  --background: var(--CALPOLYPOMONA-GREEN);
-  --foreground: var(--KHAKI);
-  --card: var(--EBONY);
-  --card-foreground: var(--KHAKI);
-  --popover: var(--EBONY);
-  --popover-foreground: var(--KHAKI);
+  --background: #f7f5e8;
+  --foreground: #1d2d18;
+  --card: #fcfbf2;
+  --card-foreground: #1d2d18;
+  --popover: #fcfbf2;
+  --popover-foreground: #1d2d18;
   --primary: var(--MAY-GREEN);
-  --primary-foreground: var(--KHAKI);
-  --secondary: var(--EBONY);
-  --secondary-foreground: var(--TEA-GREEN);
-  --muted: var(--EBONY);
-  --muted-foreground: var(--YELLOW-GREEN);
+  --primary-foreground: #f7f5e8;
+  --secondary: #e6e0bf;
+  --secondary-foreground: #30422a;
+  --muted: #ebe6ca;
+  --muted-foreground: #4b5f42;
   --accent: var(--AZTEC-GOLD);
-  --accent-foreground: var(--CALPOLYPOMONA-GREEN);
+  --accent-foreground: #24351f;
   --destructive: #c0392b;
   --destructive-foreground: #f5ede0;
-  --border: rgba(130, 209, 197, 0.18);
+  --border: rgba(20, 68, 37, 0.18);
   --input: transparent;
-  --input-background: var(--EBONY);
+  --input-background: #ffffff;
   --switch-background: var(--MAY-GREEN);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: rgba(130, 209, 197, 0.4);
+  --ring: rgba(20, 68, 37, 0.24);
   --chart-1: var(--MAY-GREEN);
   --chart-2: var(--AZTEC-GOLD);
   --chart-3: var(--PEARL-AQUA);
   --chart-4: var(--TEA-GREEN);
   --chart-5: var(--CHESTNUT);
   --radius: 0.5rem;
-  --sidebar: var(--CHESTNUT);
-  --sidebar-foreground: var(--KHAKI);
+  --sidebar: #f0ebd2;
+  --sidebar-foreground: #22331d;
   --sidebar-primary: var(--AZTEC-GOLD);
-  --sidebar-primary-foreground: var(--CALPOLYPOMONA-GREEN);
-  --sidebar-accent: color-mix(in srgb, var(--CHESTNUT) 78%, black);
-  --sidebar-accent-foreground: var(--KHAKI);
-  --sidebar-border: rgba(130, 209, 197, 0.24);
-  --sidebar-ring: rgba(130, 209, 197, 0.42);
+  --sidebar-primary-foreground: #24351f;
+  --sidebar-accent: color-mix(in srgb, var(--AZTEC-GOLD) 18%, white);
+  --sidebar-accent-foreground: #22331d;
+  --sidebar-border: rgba(20, 68, 37, 0.14);
+  --sidebar-ring: rgba(20, 68, 37, 0.22);
 }
 
 .dark {
+  --BACKGROUND-ELEVATED: color-mix(in srgb, var(--CALPOLYPOMONA-GREEN) 52%, black);
+  --CARD-SHEEN: color-mix(in srgb, var(--KHAKI) 5%, transparent);
+  --WARM-DEPTH: color-mix(in srgb, var(--AZTEC-GOLD) 8%, transparent);
+  --COOL-DEPTH: color-mix(in srgb, var(--PEARL-AQUA) 7%, transparent);
+  --SHADOW-DEPTH: rgba(1, 8, 5, 0.56);
   --background: var(--CALPOLYPOMONA-GREEN);
   --foreground: var(--KHAKI);
   --card: var(--EBONY);
@@ -150,7 +155,7 @@
     background-image:
       radial-gradient(circle at 18% 12%, var(--WARM-DEPTH), transparent 20%),
       radial-gradient(circle at 82% 18%, var(--COOL-DEPTH), transparent 18%),
-      linear-gradient(180deg, color-mix(in srgb, var(--CALPOLYPOMONA-GREEN) 55%, black), color-mix(in srgb, var(--CALPOLYPOMONA-GREEN) 78%, black));
+      linear-gradient(180deg, color-mix(in srgb, var(--background) 88%, white), color-mix(in srgb, var(--background) 92%, black));
     background-attachment: fixed;
   }
 
@@ -236,7 +241,7 @@
     background:
       linear-gradient(180deg, var(--CARD-SHEEN), transparent 30%),
       linear-gradient(90deg, color-mix(in srgb, var(--PEARL-AQUA) 5%, transparent), transparent 18%),
-      linear-gradient(180deg, color-mix(in srgb, var(--BACKGROUND-ELEVATED) 72%, black), var(--BACKGROUND-ELEVATED));
+      linear-gradient(180deg, color-mix(in srgb, var(--BACKGROUND-ELEVATED) 80%, var(--card)), var(--BACKGROUND-ELEVATED));
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.05),
       inset 0 -1px 0 rgba(0, 0, 0, 0.24),
@@ -254,13 +259,13 @@
   }
 
   .sidebar-nav-pattern {
-    background-color: var(--CHESTNUT);
+    background-color: var(--sidebar);
     background-image:
       linear-gradient(180deg, color-mix(in srgb, var(--KHAKI) 7%, transparent), transparent 18%),
       linear-gradient(90deg, color-mix(in srgb, var(--PEARL-AQUA) 5%, transparent) 1px, transparent 1px),
       linear-gradient(color-mix(in srgb, var(--AZTEC-GOLD) 7%, transparent) 1px, transparent 1px),
       radial-gradient(circle at 84% 16%, color-mix(in srgb, var(--KHAKI) 10%, transparent), transparent 18%),
-      linear-gradient(145deg, color-mix(in srgb, var(--CHESTNUT) 52%, black), color-mix(in srgb, var(--CHESTNUT) 82%, black));
+      linear-gradient(145deg, color-mix(in srgb, var(--sidebar) 92%, black), color-mix(in srgb, var(--sidebar) 82%, white));
     background-size: 100% 100%, 18px 18px, 18px 18px, 100% 100%, 100% 100%;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.04),
@@ -270,12 +275,12 @@
 
   .sidebar-nav-item {
     position: relative;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid color-mix(in srgb, var(--sidebar-foreground) 14%, transparent);
     background:
       radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--KHAKI) 9%, transparent), transparent 22%),
       linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 30%),
-      linear-gradient(145deg, color-mix(in srgb, var(--AZTEC-GOLD) 68%, black), color-mix(in srgb, var(--CHESTNUT) 76%, black));
-    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.26);
+      linear-gradient(145deg, color-mix(in srgb, var(--AZTEC-GOLD) 48%, white), color-mix(in srgb, var(--sidebar) 88%, black));
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.12);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.1),
       inset 0 -1px 0 rgba(0, 0, 0, 0.22),
