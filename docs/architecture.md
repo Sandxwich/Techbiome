@@ -15,6 +15,14 @@ Techbiome is a device-monitoring platform built around four moving parts:
 4. The MQTT bridge polls the queued commands table, marks queued commands as delivered, and writes operational logs.
 5. The alert worker reads the latest telemetry, evaluates alert rules, and creates or resolves alert instances.
 
+## Security Model
+
+- Internet traffic for the web UI enters through Cloudflare Access and is forwarded to the Caddy edge gateway only after login.
+- The REST API is private and intended to be reachable only through the edge gateway on approved routes.
+- Role-based access control separates standard user permissions from developer/operator permissions.
+- Device traffic is certificate-based, with mTLS on MQTT and pinned certificate trust for firmware download.
+- The device certificate authority supports issuance and revocation for per-device credentials.
+
 ## Why the workers exist
 
 The API is intentionally thin. It handles CRUD, query endpoints, and command/firmware queuing, but it does not sit in a long-running broker loop. The workers handle the continuous processes that would otherwise block web requests:
@@ -33,4 +41,5 @@ The API is intentionally thin. It handles CRUD, query endpoints, and command/fir
 - [backend/README.md](../backend/README.md)
 - [frontend/README.md](../frontend/README.md)
 - [docs/data-model.md](data-model.md)
+- [docs/security.md](security.md)
 - [docs/c4/index.c4](c4/index.c4)

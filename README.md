@@ -17,6 +17,7 @@ Techbiome is an IoT monitoring and device-management platform. It combines a Lit
 - [frontend/README.md](frontend/README.md) explains the UI routes and frontend structure.
 - [docs/architecture.md](docs/architecture.md) gives the system-wide flow.
 - [docs/data-model.md](docs/data-model.md) summarizes the main database tables.
+- [docs/security.md](docs/security.md) documents trust boundaries, certificate flow, and ingress policy.
 - [docs/c4/index.c4](docs/c4/index.c4) contains the architecture model used for C4 diagrams.
 
 ## Local Development
