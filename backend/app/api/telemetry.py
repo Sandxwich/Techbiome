@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 
-from litestar import Controller, get, post
+from litestar import Controller, Request, get, post
 from litestar.exceptions import HTTPException
 from sqlalchemy import desc, select
 
 from app.db.models import Device, Telemetry
 from app.db.session import SessionLocal
+from app.security import Role, require_role
 
 
 def _serialize_telemetry(row: Telemetry) -> dict:
@@ -22,7 +23,8 @@ class TelemetryController(Controller):
     path = "/telemetry"
 
     @get("/{device_id:str}")
-    def latest(self, device_id: str) -> dict:
+    def latest(self, request: Request, device_id: str) -> dict:
+        require_role(request, Role.user, Role.developer)
         with SessionLocal() as session:
             stmt = (
                 select(Telemetry)
@@ -36,7 +38,8 @@ class TelemetryController(Controller):
             return _serialize_telemetry(row)
 
     @get("/{device_id:str}/history")
-    def history(self, device_id: str, limit: int = 100) -> list[dict]:
+    def history(self, request: Request, device_id: str, limit: int = 100) -> list[dict]:
+        require_role(request, Role.user, Role.developer)
         safe_limit = min(max(limit, 1), 1000)
         with SessionLocal() as session:
             stmt = (
@@ -49,7 +52,8 @@ class TelemetryController(Controller):
             return [_serialize_telemetry(r) for r in rows]
 
     @post("/{device_id:str}")
-    def ingest(self, device_id: str, data: dict) -> dict:
+    def ingest(self, request: Request, device_id: str, data: dict) -> dict:
+        require_role(request, Role.developer)
         payload = data.get("payload")
         if not isinstance(payload, dict):
             raise HTTPException(status_code=400, detail="payload must be an object")

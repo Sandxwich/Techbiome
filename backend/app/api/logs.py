@@ -1,8 +1,9 @@
-from litestar import Controller, get
+from litestar import Controller, Request, get
 from sqlalchemy import desc, select
 
 from app.db.models import LogEntry
 from app.db.session import SessionLocal
+from app.security import Role, require_role
 
 
 def _serialize_log(entry: LogEntry) -> dict:
@@ -22,11 +23,13 @@ class LogController(Controller):
     @get()
     def list_logs(
         self,
+        request: Request,
         device_id: str | None = None,
         level: str | None = None,
         source: str | None = None,
         limit: int = 200,
     ) -> list[dict]:
+        require_role(request, Role.user, Role.developer)
         safe_limit = min(max(limit, 1), 1000)
         with SessionLocal() as session:
             stmt = select(LogEntry)

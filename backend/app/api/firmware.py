@@ -1,9 +1,10 @@
-from litestar import Controller, get, post
+from litestar import Controller, Request, get, post
 from litestar.exceptions import HTTPException
 from sqlalchemy import desc, select
 
 from app.db.models import Command, Device, Firmware
 from app.db.session import SessionLocal
+from app.security import Role, require_role
 
 
 def _serialize_firmware(item: Firmware) -> dict:
@@ -21,14 +22,16 @@ class FirmwareController(Controller):
     path = "/firmware"
 
     @get()
-    def list_firmware(self) -> list[dict]:
+    def list_firmware(self, request: Request) -> list[dict]:
+        require_role(request, Role.user, Role.developer)
         with SessionLocal() as session:
             stmt = select(Firmware).order_by(desc(Firmware.uploaded_at))
             rows = session.execute(stmt).scalars().all()
             return [_serialize_firmware(item) for item in rows]
 
     @post()
-    def create_firmware(self, data: dict) -> dict:
+    def create_firmware(self, request: Request, data: dict) -> dict:
+        require_role(request, Role.developer)
         required = ["version", "device_type", "storage_key", "checksum"]
         for field in required:
             if field not in data:
@@ -47,7 +50,8 @@ class FirmwareController(Controller):
             return _serialize_firmware(item)
 
     @post("/{firmware_id:str}/deploy")
-    def deploy_firmware(self, firmware_id: str, data: dict) -> dict:
+    def deploy_firmware(self, request: Request, firmware_id: str, data: dict) -> dict:
+        require_role(request, Role.developer)
         with SessionLocal() as session:
             firmware = session.get(Firmware, firmware_id)
             if not firmware:

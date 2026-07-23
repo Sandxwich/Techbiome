@@ -1,6 +1,7 @@
 from litestar import Litestar
 
 from app.api.alerts import AlertController
+from app.api.certificates import DeviceCertificateController
 from app.api.commands import CommandController
 from app.api.devices import DeviceController
 from app.api.firmware import FirmwareController
@@ -19,6 +20,7 @@ app = Litestar(
     route_handlers=[
         health,
         DeviceController,
+        DeviceCertificateController,
         TelemetryController,
         CommandController,
         FirmwareController,

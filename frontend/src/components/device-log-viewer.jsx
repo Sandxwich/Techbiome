@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-const DEFAULT_LOGS_URL = '/logs'
+const DEFAULT_LOGS_URL = '/api/logs'
 
 function fakeLogsForDevice(deviceId) {
   const now = Date.now()

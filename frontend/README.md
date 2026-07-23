@@ -10,6 +10,8 @@ This package contains the React/Vite UI for Techbiome.
 - `src/pages/Devices.jsx` renders the device overview.
 - `src/pages/Logs.jsx` combines alert cards, backend status, device selection, and logs.
 - `src/pages/Settings.jsx` is the configuration entry point.
+- `src/pages/Alerts.jsx` manages alert rule creation and active alert visibility.
+- `src/pages/Firmware.jsx` manages firmware metadata.
 
 ## Key UI Concepts
 

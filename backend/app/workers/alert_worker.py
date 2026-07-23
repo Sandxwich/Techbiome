@@ -1,5 +1,7 @@
 import asyncio
+import json
 from datetime import datetime, timezone
+from urllib import request as urlrequest
 
 from sqlalchemy import and_, select
 
@@ -18,6 +20,24 @@ def evaluate(operator: str, value: float, threshold: float) -> bool:
     if operator == "neq":
         return value != threshold
     return False
+
+
+def _send_webhook(payload: dict) -> None:
+    if not settings.alert_webhook_url:
+        return
+
+    body = json.dumps(payload).encode("utf-8")
+    req = urlrequest.Request(
+        settings.alert_webhook_url,
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json", "User-Agent": "techbiome-alert-worker/1.0"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=5):
+            return
+    except Exception:
+        return
 
 
 async def run_alert_worker() -> None:
@@ -59,6 +79,18 @@ async def run_alert_worker() -> None:
                             message=f"Alert triggered for rule {rule.id}",
                         )
                     )
+                    _send_webhook(
+                        {
+                            "event": "alert.triggered",
+                            "rule_id": rule.id,
+                            "device_id": telemetry.device_id,
+                            "severity": rule.severity,
+                            "value": value,
+                            "threshold": rule.threshold,
+                            "operator": rule.operator,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        }
+                    )
 
                 if not triggered and active_alert is not None:
                     active_alert.resolved_at = datetime.now(timezone.utc)
@@ -70,6 +102,18 @@ async def run_alert_worker() -> None:
                             source="alert-worker",
                             message=f"Alert resolved for rule {rule.id}",
                         )
+                    )
+                    _send_webhook(
+                        {
+                            "event": "alert.resolved",
+                            "rule_id": rule.id,
+                            "device_id": telemetry.device_id,
+                            "severity": rule.severity,
+                            "value": value,
+                            "threshold": rule.threshold,
+                            "operator": rule.operator,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        }
                     )
 
             session.commit()

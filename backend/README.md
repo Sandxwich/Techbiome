@@ -29,6 +29,7 @@ For the system-wide view, see [docs/architecture.md](../docs/architecture.md) an
 - The backend creates tables on startup in [app/main.py](app/main.py) for MVP/local development.
 - Settings are loaded from environment variables or `.env` via [app/config.py](app/config.py).
 - The default database URL falls back to SQLite, but Docker Compose uses PostgreSQL.
+- API RBAC is enforced by trusted identity headers in `app/security.py` when `SECURITY_MODE=enforced`.
 
 ## API Endpoints
 
@@ -40,6 +41,9 @@ For the system-wide view, see [docs/architecture.md](../docs/architecture.md) an
   - `POST /devices`
   - `PUT /devices/{id}`
   - `DELETE /devices/{id}`
+  - `GET /devices/{id}/certificates`
+  - `POST /devices/{id}/certificates/issue`
+  - `POST /devices/{id}/certificates/{certificate_id}/revoke`
 - Telemetry:
   - `GET /telemetry/{id}`
   - `GET /telemetry/{id}/history`
@@ -59,6 +63,15 @@ For the system-wide view, see [docs/architecture.md](../docs/architecture.md) an
   - `DELETE /alerts/rules/{id}`
 - Logs:
   - `GET /logs`
+
+## Security Controls
+
+- `SECURITY_MODE=permissive` is for local development only.
+- `SECURITY_MODE=enforced` requires trusted identity headers and role claims.
+- `TRUSTED_PROXY_SECRET` must be set so the API only trusts requests coming through your edge proxy.
+- Roles:
+  - `user`: read endpoints
+  - `developer`: read + write endpoints
 
 ## Local Development
 

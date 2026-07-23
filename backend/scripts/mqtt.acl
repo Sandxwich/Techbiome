@@ -1,0 +1,5 @@
+# Restrict each device certificate CN to its own topics.
+# Example CN "device-abc123" can only publish/subscribe its own channels.
+pattern write devices/%u/telemetry
+pattern write devices/%u/status
+pattern read devices/%u/commands

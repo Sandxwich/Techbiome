@@ -28,12 +28,20 @@ Use Docker Compose for the full stack:
 docker compose up --build
 ```
 
+For security-focused self-hosting, use the hardened topology instead:
+
+```powershell
+docker compose -f docker-compose.secure.yml up --build -d
+```
+
 Then open:
 
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8000
 - MinIO API: http://localhost:9000
 - MinIO Console: http://localhost:9001
+
+In secure mode, only the edge gateway is public (`80/443` by default). API, database, and worker services stay on an internal Docker network.
 
 If you only want one subsystem, see the backend and frontend READMEs for direct run instructions.
 
@@ -45,6 +53,15 @@ If you only want one subsystem, see the backend and frontend READMEs for direct 
 4. Wait for PostgreSQL, the MQTT broker, MinIO, the backend API, and the frontend to finish starting.
 5. Open http://localhost:5173 in your browser.
 6. If you want to work on one part directly, follow the package-specific instructions in [backend/README.md](backend/README.md) or [frontend/README.md](frontend/README.md).
+
+### Secure Self-Host Checklist
+
+1. Create strong secrets for `POSTGRES_PASSWORD`, `MINIO_ROOT_PASSWORD`, and `TRUSTED_PROXY_SECRET`.
+2. Place MQTT broker TLS files at `secrets/mqtt/ca.crt`, `secrets/mqtt/server.crt`, and `secrets/mqtt/server.key`.
+3. Run `docker compose -f docker-compose.secure.yml up --build -d`.
+4. Put Cloudflare Access (or another identity-aware proxy) in front of the edge gateway.
+5. Configure your proxy to forward `CF-Access-Authenticated-User-Email` and `X-Auth-Request-Role` headers.
+6. Set `SECURITY_MODE=enforced` for any exposed environment.
 
 ## How To Contribute
 

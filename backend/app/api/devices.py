@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 
-from litestar import Controller, delete, get, post, put
+from litestar import Controller, Request, delete, get, post, put
 from litestar.exceptions import HTTPException
 from sqlalchemy import func, select
 
 from app.db.models import Device
 from app.db.session import SessionLocal
+from app.security import Role, require_role
 
 
 def _serialize_device(device: Device) -> dict:
@@ -24,7 +25,10 @@ class DeviceController(Controller):
     path = "/devices"
 
     @get()
-    def list_devices(self, status: str | None = None, q: str | None = None) -> list[dict]:
+    def list_devices(
+        self, request: Request, status: str | None = None, q: str | None = None
+    ) -> list[dict]:
+        require_role(request, Role.user, Role.developer)
         with SessionLocal() as session:
             stmt = select(Device)
             if status:
@@ -36,13 +40,15 @@ class DeviceController(Controller):
             return [_serialize_device(d) for d in rows]
 
     @get("/count")
-    def count_devices(self) -> dict[str, int]:
+    def count_devices(self, request: Request) -> dict[str, int]:
+        require_role(request, Role.user, Role.developer)
         with SessionLocal() as session:
             total = session.execute(select(func.count(Device.id))).scalar_one()
             return {"count": int(total)}
 
     @get("/{device_id:str}")
-    def get_device(self, device_id: str) -> dict:
+    def get_device(self, request: Request, device_id: str) -> dict:
+        require_role(request, Role.user, Role.developer)
         with SessionLocal() as session:
             device = session.get(Device, device_id)
             if not device:
@@ -50,7 +56,8 @@ class DeviceController(Controller):
             return _serialize_device(device)
 
     @post()
-    def create_device(self, data: dict) -> dict:
+    def create_device(self, request: Request, data: dict) -> dict:
+        require_role(request, Role.developer)
         required_fields = ["serial", "device_type"]
         for field in required_fields:
             if field not in data:
@@ -71,7 +78,8 @@ class DeviceController(Controller):
             return _serialize_device(device)
 
     @put("/{device_id:str}")
-    def update_device(self, device_id: str, data: dict) -> dict:
+    def update_device(self, request: Request, device_id: str, data: dict) -> dict:
+        require_role(request, Role.developer)
         with SessionLocal() as session:
             device = session.get(Device, device_id)
             if not device:
@@ -93,7 +101,8 @@ class DeviceController(Controller):
             return _serialize_device(device)
 
     @delete("/{device_id:str}")
-    def delete_device(self, device_id: str) -> dict[str, bool]:
+    def delete_device(self, request: Request, device_id: str) -> dict[str, bool]:
+        require_role(request, Role.developer)
         with SessionLocal() as session:
             device = session.get(Device, device_id)
             if not device:

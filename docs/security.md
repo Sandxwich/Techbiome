@@ -83,6 +83,37 @@ Use a unique key pair and certificate per device.
 - Identity and role claims are accepted only from trusted Cloudflare-originated headers.
 - Certificate issuance and revocation actions are handled by the Device Service.
 
+## Current Implementation Status
+
+- Implemented:
+  - Role checks on API endpoints (`user` for read, `developer` for write).
+  - Trusted proxy secret gate (`X-Internal-Auth`) to avoid spoofed role headers.
+  - Configurable identity headers (`CF-Access-Authenticated-User-Email`, `X-Auth-Request-Role`).
+  - Device certificate lifecycle records (issue/list/revoke API endpoints).
+  - Optional alert webhooks for trigger/resolve state changes.
+  - Hardened deployment file: `docker-compose.secure.yml` with private app network and Caddy edge gateway.
+
+- Still your responsibility to operate safely:
+  - Run behind Cloudflare Access (or equivalent identity-aware proxy).
+  - Provide real MQTT certificates and CA rotation process.
+  - Keep CA private keys protected/offline.
+  - Restrict home router port forwarding to only 80/443 (and 8883 if devices connect from outside your LAN).
+
+## Secure Deployment Quickstart
+
+1. Set environment variables: `POSTGRES_PASSWORD`, `MINIO_ROOT_PASSWORD`, `TRUSTED_PROXY_SECRET`.
+2. Add MQTT TLS files under `secrets/mqtt/` (`ca.crt`, `server.crt`, `server.key`).
+3. Start secure stack:
+
+   ```powershell
+   docker compose -f docker-compose.secure.yml up --build -d
+   ```
+
+4. Configure Cloudflare Access to inject:
+  - `CF-Access-Authenticated-User-Email`
+  - `X-Auth-Request-Role` (`user` or `developer`)
+5. Keep `SECURITY_MODE=enforced` in production.
+
 ## Developer Provisioning Guidance
 
 For development or small-scale provisioning, SSH can be used as a bootstrap transport, but it should not be the long-term trust model.

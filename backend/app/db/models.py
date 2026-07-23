@@ -89,3 +89,17 @@ class LogEntry(Base):
     source: Mapped[str] = mapped_column(String(64), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+
+
+class DeviceCertificate(Base):
+    __tablename__ = "device_certificates"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    device_id: Mapped[str] = mapped_column(ForeignKey("devices.id"), nullable=False)
+    common_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    serial_number: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    fingerprint_sha256: Mapped[str] = mapped_column(String(128), nullable=False)
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    not_after: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revocation_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)

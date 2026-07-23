@@ -66,6 +66,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://techbiome:techbiome@postgres:5432/techbiome
       MQTT_BRIDGE_INTERVAL: 2
+      MQTT_HOST: mqtt-broker
+      MQTT_PORT: 1883
+      MQTT_USE_TLS: "false"
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,0 +1,161 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: techbiome-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-techbiome}
+      POSTGRES_USER: ${POSTGRES_USER:-techbiome}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-techbiome} -d ${POSTGRES_DB:-techbiome}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app_internal
+
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    container_name: techbiome-mqtt
+    restart: unless-stopped
+    volumes:
+      - ./backend/scripts/mosquitto.secure.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./backend/scripts/mqtt.acl:/mosquitto/config/mqtt.acl:ro
+      - ./secrets/mqtt:/mosquitto/certs:ro
+      - mqtt_data:/mosquitto/data
+      - mqtt_logs:/mosquitto/log
+    ports:
+      - "8883:8883"
+    networks:
+      - app_internal
+
+  minio:
+    image: minio/minio:latest
+    container_name: techbiome-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-techbiome}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    networks:
+      - app_internal
+
+  backend-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: techbiome-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-techbiome}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-techbiome}
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      SECURITY_MODE: enforced
+      TRUSTED_PROXY_SECRET: ${TRUSTED_PROXY_SECRET:?set TRUSTED_PROXY_SECRET}
+      IDENTITY_EMAIL_HEADER: cf-access-authenticated-user-email
+      IDENTITY_ROLE_HEADER: x-auth-request-role
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      MQTT_BRIDGE_INTERVAL: 2
+      ALERT_WORKER_INTERVAL: 5
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    networks:
+      - app_internal
+
+  mqtt-bridge:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: techbiome-mqtt-bridge
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-techbiome}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-techbiome}
+      MQTT_BRIDGE_INTERVAL: 2
+      MQTT_HOST: mqtt-broker
+      MQTT_PORT: 8883
+      MQTT_USE_TLS: "true"
+      MQTT_CA_FILE: /run/mqtt-client/ca.crt
+      MQTT_CERT_FILE: /run/mqtt-client/client.crt
+      MQTT_KEY_FILE: /run/mqtt-client/client.key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_started
+    command: python -m app.workers.mqtt_bridge
+    volumes:
+      - ./secrets/mqtt/client:/run/mqtt-client:ro
+    networks:
+      - app_internal
+
+  alert-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: techbiome-alert-worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-techbiome}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-techbiome}
+      ALERT_WORKER_INTERVAL: 5
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: python -m app.workers.alert_worker
+    networks:
+      - app_internal
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: techbiome-frontend
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      - backend-api
+    networks:
+      - app_internal
+
+  edge-gateway:
+    image: caddy:2.10
+    container_name: techbiome-caddy
+    restart: unless-stopped
+    environment:
+      TRUSTED_PROXY_SECRET: ${TRUSTED_PROXY_SECRET:?set TRUSTED_PROXY_SECRET}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend-api
+    networks:
+      - edge
+      - app_internal
+
+volumes:
+  postgres_data:
+  mqtt_data:
+  mqtt_logs:
+  minio_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  edge:
+  app_internal:
+    internal: true

@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 
-from litestar import Controller, delete, get, post, put
+from litestar import Controller, Request, delete, get, post, put
 from litestar.exceptions import HTTPException
 from sqlalchemy import and_, select
 
 from app.db.models import AlertInstance, AlertRule
 from app.db.session import SessionLocal
+from app.security import Role, require_role
 
 
 def _serialize_rule(rule: AlertRule) -> dict:
@@ -34,7 +35,8 @@ class AlertController(Controller):
     path = "/alerts"
 
     @get()
-    def list_active_alerts(self, device_id: str | None = None) -> list[dict]:
+    def list_active_alerts(self, request: Request, device_id: str | None = None) -> list[dict]:
+        require_role(request, Role.user, Role.developer)
         with SessionLocal() as session:
             stmt = select(AlertInstance).where(AlertInstance.resolved_at.is_(None))
             if device_id:
@@ -43,13 +45,15 @@ class AlertController(Controller):
             return [_serialize_alert(row) for row in rows]
 
     @get("/rules")
-    def list_rules(self) -> list[dict]:
+    def list_rules(self, request: Request) -> list[dict]:
+        require_role(request, Role.user, Role.developer)
         with SessionLocal() as session:
             rows = session.execute(select(AlertRule)).scalars().all()
             return [_serialize_rule(row) for row in rows]
 
     @post("/rules")
-    def create_rule(self, data: dict) -> dict:
+    def create_rule(self, request: Request, data: dict) -> dict:
+        require_role(request, Role.developer)
         required = ["metric", "operator", "threshold"]
         for field in required:
             if field not in data:
@@ -69,7 +73,8 @@ class AlertController(Controller):
             return _serialize_rule(rule)
 
     @put("/rules/{rule_id:str}")
-    def update_rule(self, rule_id: str, data: dict) -> dict:
+    def update_rule(self, request: Request, rule_id: str, data: dict) -> dict:
+        require_role(request, Role.developer)
         with SessionLocal() as session:
             rule = session.get(AlertRule, rule_id)
             if not rule:
@@ -87,7 +92,8 @@ class AlertController(Controller):
             return _serialize_rule(rule)
 
     @delete("/rules/{rule_id:str}")
-    def delete_rule(self, rule_id: str) -> dict[str, bool]:
+    def delete_rule(self, request: Request, rule_id: str) -> dict[str, bool]:
+        require_role(request, Role.developer)
         with SessionLocal() as session:
             rule = session.get(AlertRule, rule_id)
             if not rule:
@@ -97,7 +103,8 @@ class AlertController(Controller):
             return {"deleted": True}
 
     @post("/simulate")
-    def simulate(self, data: dict) -> dict:
+    def simulate(self, request: Request, data: dict) -> dict:
+        require_role(request, Role.developer)
         required = ["rule_id", "device_id", "value"]
         for field in required:
             if field not in data:

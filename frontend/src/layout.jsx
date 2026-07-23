@@ -1,11 +1,13 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Leaf, LayoutDashboard, ScrollText, Settings, Cpu, Wifi } from 'lucide-react'
+import { Leaf, LayoutDashboard, ScrollText, Settings, Cpu, Wifi, Bell, Package } from 'lucide-react'
 import SolarGlobeWidget from './components/SolarGlobeWidget.jsx'
 import { useDeviceCount } from './hooks/useDeviceCount.js'
 
 const navItems = [
     { id: 'dashboard', label: 'Dashboard', to: '/', Icon: LayoutDashboard },
     { id: 'devices', label: 'Devices', to: '/devices', Icon: Cpu },
+    { id: 'alerts', label: 'Alerts', to: '/alerts', Icon: Bell },
+    { id: 'firmware', label: 'Firmware', to: '/firmware', Icon: Package },
     { id: 'logs', label: 'Logs', to: '/logs', Icon: ScrollText },
     { id: 'settings', label: 'Settings', to: '/settings', Icon: Settings },
 ]
