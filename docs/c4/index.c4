@@ -48,6 +48,15 @@ specification {
   tag http-post
   tag http-put
   tag http-delete
+  tag tls
+  tag mtls
+  tag self-signed
+  tag internet-exposed
+  tag internal-only
+  tag authn
+  tag rbac
+  tag role-user
+  tag role-developer
 
 }
 
@@ -60,6 +69,34 @@ model {
     description 'Person who manages and monitors devices through the web UI.'
   }
 
+  developer = actor {
+    title 'Developer'
+    description 'Engineer who operates and maintains the platform through approved UI workflows.'
+  }
+
+  cloudflare-edge = service {
+    #internet-exposed
+    title 'Cloudflare Edge'
+    technology 'Cloudflare DNS + Proxy/WAF'
+    description '''
+    Internet-facing domain entrypoint for the web application.
+
+    Responsibilities:
+    - Hosts the public Cloudflare domain (for example app.techbiome.com)
+    - Terminates edge TLS for users
+    - Enforces Cloudflare Access login and session policies
+    - Applies DDoS protection and WAF policies
+    - Injects trusted identity headers for origin authorization
+    - Forwards only allowed HTTPS traffic to the Caddy origin
+    '''
+  }
+
+  identity-provider = service {
+    title 'Identity Provider'
+    technology 'OIDC/SAML Provider'
+    description 'External identity source used by Cloudflare Access for user and developer login.'
+  }
+
   // -- Device -----------------------------------------------------------------
 
   device = component {
@@ -69,8 +106,8 @@ model {
     A connected hardware device that collects sensor data and responds
     to commands from the platform.
 
-    Communicates over MQTTS for real-time telemetry and commands.
-    Uses HTTPS for OTA firmware downloads.
+    Communicates over MQTTS with mutual TLS for real-time telemetry and commands.
+    Uses HTTPS with certificate pinning for OTA firmware downloads.
     '''
     style {
       multiple true
@@ -84,9 +121,9 @@ model {
       Subscribes to its command topic.
 
       Topics:
-      - `devices/{id}/telemetry` — publish sensor data
-      - `devices/{id}/status`    — publish connectivity state
-      - `devices/{id}/commands`  — subscribe for incoming commands
+      - `devices/{id}/telemetry` -> publish sensor data
+      - `devices/{id}/status`    -> publish connectivity state
+      - `devices/{id}/commands`  -> subscribe for incoming commands
       '''
     }
 
@@ -95,19 +132,28 @@ model {
       summary 'Used exclusively for OTA firmware downloads'
     }
 
+    mqtt-client -> techbiome.device-ca {
+      #self-signed
+      title 'Trust self-signed device root CA'
+      technology 'Provisioning/bootstrap channel'
+    }
+
     mqtt-client -> techbiome.mqtt-broker {
+      #mtls #self-signed
       title 'Publish telemetry & status'
-      technology 'MQTTS'
+      technology 'MQTTS with client certificate authentication'
     }
 
     techbiome.mqtt-broker -> mqtt-client {
+      #mtls #self-signed
       title 'Deliver commands'
-      technology 'MQTTS'
+      technology 'MQTTS with client certificate authentication'
     }
 
     http-client -> techbiome.firmware-storage {
+      #tls #self-signed
       title 'Download firmware image'
-      technology 'HTTPS'
+      technology 'HTTPS (pinned private certificate)'
     }
   }
 
@@ -121,6 +167,10 @@ model {
     Ingests telemetry from devices, stores it, exposes a REST API
     for the web UI, handles OTA firmware updates, evaluates alert
     rules and maintains an audit log.
+
+    Security boundary:
+    - Only the web UI is internet-facing through Cloudflare and Caddy
+    - Backend services are private, except certificate-authenticated device channels
     '''
 
     // -- MQTT Broker --------------------------------------------------------
@@ -132,7 +182,26 @@ model {
       Accepts MQTTS connections from devices and from the internal
       MQTT bridge service. Retains command messages so devices that
       reconnect after going offline still receive pending commands.
+
+      Enforces mTLS for all device sessions and accepts only
+      client certificates chained to the private device CA.
       '''
+    }
+
+    // -- Device PKI ---------------------------------------------------------
+
+    device-ca = component {
+      title 'Device Certificate Authority'
+      technology 'Private PKI (self-signed root)'
+      description '''
+      Issues and rotates per-device client certificates used for mTLS.
+      Maintains certificate revocation information to block compromised devices.
+      '''
+    }
+
+    mqtt-broker -> device-ca {
+      title 'Validate device cert chain and revocation'
+      technology 'x509 trust store + CRL'
     }
 
     // -- MQTT Bridge --------------------------------------------------------
@@ -206,9 +275,32 @@ model {
     // -- REST API -----------------------------------------------------------
 
     api = service {
+      #internal-only
       title 'REST API'
       technology 'Python / Litestar'
-      description 'Single Litestar process exposing all platform capabilities over HTTPS.'
+      description '''
+      Private Litestar service exposing platform capabilities over HTTPS.
+
+      Access policy:
+      - UI calls are accepted only through the Caddy reverse proxy on `/api`
+      - Direct internet access to API listeners is blocked by network policy
+      - Role-based authorization separates user and developer capabilities
+      '''
+
+      authorization = component {
+        #rbac
+        title 'Authorization Layer'
+        technology 'RBAC policy engine'
+        description '''
+        Enforces role-based permissions using trusted identity headers
+        from Cloudflare Access.
+
+        Roles:
+        - `user`: read dashboard, devices, telemetry and logs
+        - `developer`: all user permissions plus firmware deploy,
+          alert rule changes, sensitive commands and certificate lifecycle operations
+        '''
+      }
 
       devices-api = component {
         title 'Device Service'
@@ -230,6 +322,15 @@ model {
         -> database.devices {
           title 'CRUD device records'
         }
+
+        -> authorization {
+          #rbac
+          title 'Authorize device registry and certificate actions'
+        }
+
+        -> device-ca {
+          title 'Issue/revoke device client certificates'
+        }
       }
 
       telemetry-api = component {
@@ -248,6 +349,11 @@ model {
 
         -> database.telemetry {
           title 'Query telemetry records'
+        }
+
+        -> authorization {
+          #rbac
+          title 'Authorize telemetry access'
         }
       }
 
@@ -268,6 +374,11 @@ model {
 
         -> database.commands {
           title 'Queue and track commands'
+        }
+
+        -> authorization {
+          #rbac
+          title 'Authorize command scope (developer for sensitive commands)'
         }
       }
 
@@ -297,6 +408,11 @@ model {
         -> database.commands {
           title 'Queue OTA command per target device'
         }
+
+        -> authorization {
+          #rbac
+          title 'Authorize firmware management (developer only)'
+        }
       }
 
       alerts-api = component {
@@ -319,6 +435,11 @@ model {
         -> database.alerts {
           title 'CRUD alert rules and alert state'
         }
+
+        -> authorization {
+          #rbac
+          title 'Authorize alert-rule changes (developer only for write)'
+        }
       }
 
       logs-api = component {
@@ -336,6 +457,11 @@ model {
 
         -> database.logs {
           title 'Query log records'
+        }
+
+        -> authorization {
+          #rbac
+          title 'Authorize log access'
         }
       }
     }
@@ -454,6 +580,35 @@ model {
       description 'Stores firmware binary images referenced by the firmware table via storage_key.'
     }
 
+    // -- Edge Gateway -------------------------------------------------------
+
+    edge-gateway = service {
+      #internet-exposed
+      title 'Edge Gateway'
+      technology 'Caddy'
+      description '''
+      Public origin behind Cloudflare that serves browser traffic.
+
+      Responsibilities:
+      - Accept ingress from Cloudflare only
+      - Terminate TLS and manage certificates for public endpoints
+      - Enforce HSTS and secure HTTP headers
+      - Apply basic rate limiting and request logging
+      - Route `/` to the Web UI and `/api` to the internal REST API
+      '''
+
+      -> frontend {
+        title 'Serve SPA assets'
+        technology 'HTTPS'
+      }
+
+      -> api {
+        #tls #authn
+        title 'Proxy `/api` with trusted identity headers'
+        technology 'HTTPS (private network only)'
+      }
+    }
+
     // -- Frontend -----------------------------------------------------------
 
     frontend = component {
@@ -566,9 +721,28 @@ model {
 
   // -- Top-level relationships ------------------------------------------------
 
-  user -> techbiome.frontend {
-    title 'Manages devices via'
-    technology 'HTTPS'
+  user -> cloudflare-edge {
+    #authn #role-user
+    title 'Login via Cloudflare Access (user role)'
+    technology 'HTTPS + SSO'
+  }
+
+  developer -> cloudflare-edge {
+    #authn #role-developer
+    title 'Login via Cloudflare Access (developer role)'
+    technology 'HTTPS + SSO'
+  }
+
+  cloudflare-edge -> identity-provider {
+    #authn
+    title 'Authenticate users and fetch group claims'
+    technology 'OIDC/SAML'
+  }
+
+  cloudflare-edge -> techbiome.edge-gateway {
+    #tls #authn
+    title 'Forward authenticated traffic to origin'
+    technology 'HTTPS + trusted identity headers'
   }
 
 }
@@ -579,6 +753,147 @@ views {
     title 'Landscape'
     description 'High-level overview of all actors and systems.'
     include *
+  }
+
+  view security {
+    title 'Security Architecture'
+    description 'Trust boundaries, Cloudflare Access login and role-based access control.'
+
+    include user
+    include developer
+    include cloudflare-edge
+    include identity-provider
+    include techbiome.edge-gateway
+    include techbiome.frontend
+    include techbiome.api
+    include techbiome.api.authorization
+    include techbiome.api.devices-api
+    include techbiome.api.firmware-api
+    include techbiome.mqtt-broker
+    include techbiome.device-ca
+    include techbiome.firmware-storage
+    include device
+    include device.mqtt-client
+    include device.http-client
+
+    include user -> cloudflare-edge
+    include developer -> cloudflare-edge
+    include cloudflare-edge -> identity-provider
+    include cloudflare-edge -> techbiome.edge-gateway
+    include techbiome.edge-gateway -> techbiome.frontend
+    include techbiome.edge-gateway -> techbiome.api
+    include techbiome.api.devices-api -> techbiome.api.authorization
+    include techbiome.api.firmware-api -> techbiome.api.authorization
+    include device.mqtt-client -> techbiome.device-ca
+    include device.mqtt-client -> techbiome.mqtt-broker
+    include techbiome.mqtt-broker -> device.mqtt-client
+    include techbiome.mqtt-broker -> techbiome.device-ca
+    include device.http-client -> techbiome.firmware-storage
+
+    autoLayout LeftRight
+  }
+
+  view user-access {
+    title 'User Access'
+    description 'What a standard authenticated user can access through approved UI routes.'
+
+    include user
+    include cloudflare-edge
+    include identity-provider
+    include techbiome.edge-gateway
+    include techbiome.frontend
+    include techbiome.frontend.dashboard
+    include techbiome.frontend.devices-page
+    include techbiome.frontend.device-detail-page
+    include techbiome.frontend.logs-page
+    include techbiome.api
+    include techbiome.api.authorization
+    include techbiome.api.devices-api
+    include techbiome.api.telemetry-api
+    include techbiome.api.logs-api
+
+    include user -> cloudflare-edge
+    include cloudflare-edge -> identity-provider
+    include cloudflare-edge -> techbiome.edge-gateway
+    include techbiome.edge-gateway -> techbiome.frontend
+    include techbiome.edge-gateway -> techbiome.api
+    include techbiome.frontend.devices-page -> techbiome.api.devices-api
+    include techbiome.frontend.device-detail-page -> techbiome.api.devices-api
+    include techbiome.frontend.device-detail-page -> techbiome.api.telemetry-api
+    include techbiome.frontend.device-detail-page -> techbiome.api.logs-api
+    include techbiome.frontend.logs-page -> techbiome.api.logs-api
+    include techbiome.api.devices-api -> techbiome.api.authorization
+    include techbiome.api.telemetry-api -> techbiome.api.authorization
+    include techbiome.api.logs-api -> techbiome.api.authorization
+
+    autoLayout LeftRight
+  }
+
+  view developer-access {
+    title 'Developer Access'
+    description 'What an authenticated developer can access, including privileged operations.'
+
+    include developer
+    include cloudflare-edge
+    include identity-provider
+    include techbiome.edge-gateway
+    include techbiome.frontend
+    include techbiome.frontend.devices-page
+    include techbiome.frontend.device-detail-page
+    include techbiome.frontend.firmware-page
+    include techbiome.frontend.alerts-page
+    include techbiome.frontend.logs-page
+    include techbiome.api
+    include techbiome.api.devices-api
+    include techbiome.api.telemetry-api
+    include techbiome.api.commands-api
+    include techbiome.api.firmware-api
+    include techbiome.api.alerts-api
+    include techbiome.api.logs-api
+    include techbiome.api.authorization
+    include techbiome.device-ca
+
+    include developer -> cloudflare-edge
+    include cloudflare-edge -> identity-provider
+    include cloudflare-edge -> techbiome.edge-gateway
+    include techbiome.edge-gateway -> techbiome.frontend
+    include techbiome.edge-gateway -> techbiome.api
+    include techbiome.frontend.devices-page -> techbiome.api.devices-api
+    include techbiome.frontend.device-detail-page -> techbiome.api.devices-api
+    include techbiome.frontend.device-detail-page -> techbiome.api.telemetry-api
+    include techbiome.frontend.device-detail-page -> techbiome.api.commands-api
+    include techbiome.frontend.device-detail-page -> techbiome.api.logs-api
+    include techbiome.frontend.firmware-page -> techbiome.api.firmware-api
+    include techbiome.frontend.alerts-page -> techbiome.api.alerts-api
+    include techbiome.frontend.logs-page -> techbiome.api.logs-api
+    include techbiome.api.devices-api -> techbiome.api.authorization
+    include techbiome.api.commands-api -> techbiome.api.authorization
+    include techbiome.api.firmware-api -> techbiome.api.authorization
+    include techbiome.api.alerts-api -> techbiome.api.authorization
+    include techbiome.api.logs-api -> techbiome.api.authorization
+    include techbiome.api.devices-api -> techbiome.device-ca
+
+    autoLayout LeftRight
+  }
+
+  view device-access {
+    title 'Device Access'
+    description 'What a managed device can access with pinned/private certificates.'
+
+    include device
+    include device.mqtt-client
+    include device.http-client
+    include techbiome.device-ca
+    include techbiome.mqtt-broker
+    include techbiome.firmware-storage
+
+    include device.mqtt-client -> techbiome.device-ca
+    include device.mqtt-client -> techbiome.mqtt-broker
+    include techbiome.mqtt-broker -> device.mqtt-client
+    include techbiome.mqtt-broker -> techbiome.device-ca
+    include device.http-client -> techbiome.firmware-storage
+
+    autoLayout LeftRight
   }
 
   view of techbiome {
